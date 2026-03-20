@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "request_id": "example-request-error",
+  "trace_id": "example-trace-error",
+  "status": "error",
+  "ecosystem": "pip",
+  "resolver": {
+    "name": "pip-dependency-resolver",
+    "adapter_version": "v1",
+    "backend_version": "legacy"
+  },
+  "error": {
+    "code": "INVALID_ARGUMENT",
+    "message": "package.name is required for resolve",
+    "retryable": false,
+    "backend_error": null
+  },
+  "diagnostics": [],
+  "raw": null,
+  "timing": {
+    "duration_ms": 1
+  }
+}

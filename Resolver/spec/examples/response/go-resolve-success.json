@@ -1,0 +1,160 @@
+{
+  "schema_version": "1.0",
+  "request_id": "example-go-resolve",
+  "trace_id": "example-go-trace",
+  "status": "ok",
+  "ecosystem": "go",
+  "resolver": {
+    "name": "go-dependency-resolver",
+    "adapter_version": "v1",
+    "backend_version": "legacy-go"
+  },
+  "result": {
+    "root": {
+      "id": "go:github.com/gin-gonic/gin@v1.9.1",
+      "ecosystem": "go",
+      "name": "github.com/gin-gonic/gin",
+      "version": "v1.9.1",
+      "labels": {
+        "scope": "root"
+      },
+      "attributes": {
+        "optional": false,
+        "peer": false,
+        "dev": false
+      }
+    },
+    "nodes": [
+      {
+        "id": "go:github.com/gin-gonic/gin@v1.9.1",
+        "ecosystem": "go",
+        "name": "github.com/gin-gonic/gin",
+        "version": "v1.9.1",
+        "labels": {
+          "scope": "root"
+        },
+        "attributes": {
+          "optional": false,
+          "peer": false,
+          "dev": false
+        }
+      },
+      {
+        "id": "go:github.com/gin-contrib/sse@v0.1.0",
+        "ecosystem": "go",
+        "name": "github.com/gin-contrib/sse",
+        "version": "v0.1.0",
+        "labels": {
+          "scope": "runtime"
+        },
+        "attributes": {
+          "optional": false,
+          "peer": false,
+          "dev": false
+        }
+      },
+      {
+        "id": "go:golang.org/x/net@v0.23.0",
+        "ecosystem": "go",
+        "name": "golang.org/x/net",
+        "version": "v0.23.0",
+        "labels": {
+          "scope": "runtime"
+        },
+        "attributes": {
+          "optional": false,
+          "peer": false,
+          "dev": false,
+          "replace": {
+            "path": "golang.org/x/net",
+            "version": "v0.23.1"
+          }
+        }
+      }
+    ],
+    "edges": [
+      {
+        "from": "go:github.com/gin-gonic/gin@v1.9.1",
+        "to": "go:github.com/gin-contrib/sse@v0.1.0",
+        "type": "direct",
+        "constraint": null,
+        "depth": 1,
+        "attributes": {
+          "optional": false,
+          "peer": false,
+          "replaced": false,
+          "indirect": false
+        }
+      },
+      {
+        "from": "go:github.com/gin-gonic/gin@v1.9.1",
+        "to": "go:golang.org/x/net@v0.23.0",
+        "type": "transitive",
+        "constraint": null,
+        "depth": 2,
+        "attributes": {
+          "optional": false,
+          "peer": false,
+          "replaced": true,
+          "indirect": true,
+          "replace": {
+            "path": "golang.org/x/net",
+            "version": "v0.23.1"
+          }
+        }
+      }
+    ],
+    "semantics": {
+      "source": "buildlist",
+      "resolution_strategy": "mvs",
+      "graph_kind": "buildlist",
+      "build_list": [
+        {
+          "path": "github.com/gin-contrib/sse",
+          "version": "v0.1.0",
+          "depth": 1,
+          "indirect": false,
+          "replace": null,
+          "raw": {
+            "path": "github.com/gin-contrib/sse",
+            "version": "v0.1.0",
+            "depth": 1
+          }
+        },
+        {
+          "path": "golang.org/x/net",
+          "version": "v0.23.0",
+          "depth": 2,
+          "indirect": true,
+          "replace": {
+            "path": "golang.org/x/net",
+            "version": "v0.23.1"
+          },
+          "raw": {
+            "path": "golang.org/x/net",
+            "version": "v0.23.0",
+            "depth": 2,
+            "indirect": true,
+            "replace": {
+              "path": "golang.org/x/net",
+              "version": "v0.23.1"
+            }
+          }
+        }
+      ]
+    },
+    "metrics": {
+      "node_count": 3,
+      "edge_count": 2
+    }
+  },
+  "diagnostics": [],
+  "raw": null,
+  "timing": {
+    "duration_ms": 1
+  },
+  "metrics": {
+    "node_count": 3,
+    "edge_count": 2
+  }
+}

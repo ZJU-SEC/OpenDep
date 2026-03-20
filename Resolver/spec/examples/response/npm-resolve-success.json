@@ -1,0 +1,222 @@
+{
+  "schema_version": "1.0",
+  "request_id": "example-npm-resolve",
+  "trace_id": "example-npm-trace",
+  "status": "ok",
+  "ecosystem": "npm",
+  "resolver": {
+    "name": "npm-dependency-resolver",
+    "adapter_version": "v1",
+    "backend_version": "legacy-cpp"
+  },
+  "result": {
+    "root": {
+      "id": "npm:mocha@10.0.0",
+      "ecosystem": "npm",
+      "name": "mocha",
+      "version": "10.0.0",
+      "labels": {
+        "scope": "root"
+      },
+      "attributes": {
+        "optional": false,
+        "peer": false,
+        "dev": false,
+        "install_paths": [
+          "."
+        ]
+      }
+    },
+    "nodes": [
+      {
+        "id": "npm:mocha@10.0.0",
+        "ecosystem": "npm",
+        "name": "mocha",
+        "version": "10.0.0",
+        "labels": {
+          "scope": "root"
+        },
+        "attributes": {
+          "optional": false,
+          "peer": false,
+          "dev": false,
+          "install_paths": [
+            "."
+          ]
+        }
+      },
+      {
+        "id": "npm:debug@4.3.4",
+        "ecosystem": "npm",
+        "name": "debug",
+        "version": "4.3.4",
+        "labels": {
+          "scope": "runtime"
+        },
+        "attributes": {
+          "optional": false,
+          "peer": false,
+          "dev": false,
+          "install_paths": [
+            "./node_modules/debug"
+          ]
+        }
+      },
+      {
+        "id": "npm:ms@2.1.2",
+        "ecosystem": "npm",
+        "name": "ms",
+        "version": "2.1.2",
+        "labels": {
+          "scope": "runtime"
+        },
+        "attributes": {
+          "optional": false,
+          "peer": false,
+          "dev": false,
+          "install_paths": [
+            "./node_modules/ms"
+          ]
+        }
+      },
+      {
+        "id": "npm:supports-color@8.1.1",
+        "ecosystem": "npm",
+        "name": "supports-color",
+        "version": "8.1.1",
+        "labels": {
+          "scope": "runtime"
+        },
+        "attributes": {
+          "optional": false,
+          "peer": false,
+          "dev": false,
+          "install_paths": [
+            "./node_modules/supports-color"
+          ]
+        }
+      },
+      {
+        "id": "npm:mocha-alias@10.0.0",
+        "ecosystem": "npm",
+        "name": "mocha-alias",
+        "version": "10.0.0",
+        "labels": {
+          "scope": "runtime"
+        },
+        "attributes": {
+          "optional": false,
+          "peer": false,
+          "dev": false,
+          "install_paths": [
+            "./node_modules/mocha-alias"
+          ],
+          "alias_target": "mocha"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "from": "npm:mocha@10.0.0",
+        "to": "npm:debug@4.3.4",
+        "type": "direct",
+        "constraint": null,
+        "depth": 1,
+        "attributes": {
+          "optional": false,
+          "peer": true,
+          "replaced": false
+        }
+      },
+      {
+        "from": "npm:debug@4.3.4",
+        "to": "npm:ms@2.1.2",
+        "type": "transitive",
+        "constraint": null,
+        "depth": 2,
+        "attributes": {
+          "optional": false,
+          "peer": false,
+          "replaced": false
+        }
+      },
+      {
+        "from": "npm:mocha@10.0.0",
+        "to": "npm:supports-color@8.1.1",
+        "type": "direct",
+        "constraint": null,
+        "depth": 1,
+        "attributes": {
+          "optional": false,
+          "peer": false,
+          "replaced": false
+        }
+      },
+      {
+        "from": "npm:supports-color@8.1.1",
+        "to": "npm:ms@2.1.2",
+        "type": "transitive",
+        "constraint": null,
+        "depth": 2,
+        "attributes": {
+          "optional": false,
+          "peer": false,
+          "replaced": false,
+          "deduped": true
+        }
+      },
+      {
+        "from": "npm:mocha@10.0.0",
+        "to": "npm:mocha-alias@10.0.0",
+        "type": "direct",
+        "constraint": null,
+        "depth": 1,
+        "attributes": {
+          "optional": false,
+          "peer": false,
+          "replaced": false,
+          "alias_target": "mocha"
+        }
+      }
+    ],
+    "semantics": {
+      "source": "peer-checker-adapter",
+      "platform": {
+        "os": "linux",
+        "cpu": "x64",
+        "libc": "glibc"
+      },
+      "resolution": {
+        "state": "ok",
+        "message": "mocha 10.0.0: Ok"
+      },
+      "requested_version": "10.0.0",
+      "version_spec": "10.0.0",
+      "resolved_root_version": "10.0.0",
+      "directory_tree": [
+        ". 10.0.0",
+        "./node_modules/debug 4.3.4",
+        "./node_modules/ms 2.1.2",
+        "./node_modules/supports-color 8.1.1",
+        "./node_modules/mocha-alias 10.0.0"
+      ]
+    },
+    "metrics": {
+      "duration_ms": 12,
+      "directory_entry_count": 5,
+      "node_count": 5,
+      "edge_count": 5
+    }
+  },
+  "diagnostics": [],
+  "raw": null,
+  "timing": {
+    "duration_ms": 1
+  },
+  "metrics": {
+    "duration_ms": 12,
+    "directory_entry_count": 5,
+    "node_count": 5,
+    "edge_count": 5
+  }
+}

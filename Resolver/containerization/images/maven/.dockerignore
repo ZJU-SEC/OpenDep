@@ -1,0 +1,30 @@
+# Ignore build artifacts
+target/*
+
+# Ignore IDE files
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# Ignore version control
+.git/
+.gitignore
+
+# Ignore documentation and specs
+README.md
+.kiro/
+
+# Ignore logs
+*.log
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore Docker files themselves
+Dockerfile
+.dockerignore
+docker-compose.yml

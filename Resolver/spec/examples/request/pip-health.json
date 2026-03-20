@@ -1,0 +1,10 @@
+{
+  "schema_version": "1.0",
+  "request_id": "example-request-health",
+  "trace_id": "example-trace-health",
+  "command": "health",
+  "ecosystem": "pip",
+  "options": {
+    "timeout_ms": 5000
+  }
+}

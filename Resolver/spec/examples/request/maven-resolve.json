@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0",
+  "request_id": "example-maven-resolve",
+  "trace_id": "example-maven-trace",
+  "command": "resolve",
+  "ecosystem": "maven",
+  "package": {
+    "name": "org.example:demo",
+    "version": "1.0.0"
+  },
+  "options": {
+    "format": "graph",
+    "timeout_ms": 120000,
+    "return_raw": false
+  },
+  "context": {
+    "caller": "example"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0",
+  "request_id": "pip-indexed-example",
+  "trace_id": "pip-indexed-example-trace",
+  "command": "resolve",
+  "ecosystem": "pip",
+  "package": {
+    "name": "requests",
+    "version": "2.31.0"
+  },
+  "options": {
+    "format": "graph",
+    "timeout_ms": 180000,
+    "return_raw": false
+  }
+}

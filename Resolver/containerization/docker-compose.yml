@@ -1,0 +1,117 @@
+services:
+  resolver-pip:
+    image: pip-resolver:latest
+    build:
+      context: ../..
+      dockerfile: Resolver/containerization/images/pip/Dockerfile
+    working_dir: /workspace
+    volumes:
+      - ../..:/workspace
+      - pip_cache:/resolver-pip-cache
+    stdin_open: true
+    tty: false
+    init: true
+    environment:
+      RESOLVER_ECOSYSTEM: pip
+      RESOLVER_NAME: pip-dependency-resolver
+      ADAPTER_VERSION: container-v1
+      BACKEND_VERSION: python-backend-v1
+      PIP_BACKEND_MODULE: Resolver.containerization.images.pip.backend
+      PIP_METADATA_MODE: ${PIP_METADATA_MODE:-live}
+      PIP_CACHE_DIR: /resolver-pip-cache
+      PIP_INDEX_BACKEND: ${PIP_INDEX_BACKEND:-postgres}
+      PIP_INDEX_DSN: ${PIP_INDEX_DSN:-}
+      PIP_INDEX_TABLE: ${PIP_INDEX_TABLE:-projects_metadata}
+      PIP_INDEX_FALLBACK_TO_LIVE: ${PIP_INDEX_FALLBACK_TO_LIVE:-false}
+      PIP_PYPI_JSON_BASE_URL: ${PIP_PYPI_JSON_BASE_URL:-https://pypi.org/pypi}
+      PIP_HTTP_USER_AGENT: ${PIP_HTTP_USER_AGENT:-OpenDep-Pip-Resolver/0.1}
+    entrypoint: ["python3", "Resolver/containerization/runtime/pip_adapter.py"]
+
+  resolver-npm:
+    image: npm-resolver:latest
+    build:
+      context: ../..
+      dockerfile: Resolver/containerization/images/npm/Dockerfile
+    working_dir: /app
+    stdin_open: true
+    tty: false
+    init: true
+    environment:
+      RESOLVER_ECOSYSTEM: npm
+      RESOLVER_NAME: npm-dependency-resolver
+      ADAPTER_VERSION: container-v1
+      BACKEND_VERSION: legacy-cpp
+      NPM_BACKEND_BINARY: /usr/local/bin/npm-resolver
+      NPM_PLATFORM_OS: linux
+      NPM_PLATFORM_CPU: x64
+      NPM_PLATFORM_LIBC: glibc
+    entrypoint: ["python3", "Resolver/containerization/runtime/npm_adapter.py"]
+
+  resolver-go:
+    image: go-resolver:latest
+    build:
+      context: ../..
+      dockerfile: Resolver/containerization/images/go/Dockerfile
+    working_dir: /app
+    stdin_open: true
+    tty: false
+    init: true
+    environment:
+      RESOLVER_ECOSYSTEM: go
+      RESOLVER_NAME: go-dependency-resolver
+      ADAPTER_VERSION: container-v1
+      BACKEND_VERSION: native-go
+      GO_BACKEND_BINARY: /usr/local/bin/go-resolver
+      GO_PROXY_BASE_URL: https://proxy.golang.org
+      GO_DEFAULT_TIMEOUT_MS: 120000
+    entrypoint: ["python3", "Resolver/containerization/runtime/go_adapter.py"]
+
+  resolver-cargo:
+    image: cargo-resolver:latest
+    build:
+      context: ../..
+      dockerfile: Resolver/containerization/images/cargo/Dockerfile
+    working_dir: /app
+    volumes:
+      - cargo_home:/cargo-home
+    stdin_open: true
+    tty: false
+    init: true
+    environment:
+      RESOLVER_ECOSYSTEM: cargo
+      RESOLVER_NAME: cargo-dependency-resolver
+      ADAPTER_VERSION: container-v1
+      BACKEND_VERSION: native-rust
+      CARGO_BACKEND_BINARY: /usr/local/bin/cargo-resolver
+      CARGO_HOME: /cargo-home
+      CARGO_REGISTRY_MODE: local-file-index
+    entrypoint: ["python3", "Resolver/containerization/runtime/cargo_adapter.py"]
+
+  resolver-maven:
+    image: maven-resolver:latest
+    build:
+      context: ../..
+      dockerfile: Resolver/containerization/images/maven/Dockerfile
+    working_dir: /app
+    volumes:
+      - maven_m2:/root/.m2
+    stdin_open: true
+    tty: false
+    init: true
+    environment:
+      JAVA_OPTS: -Xmx2g -Xms1g -XX:+UseG1GC
+      RESOLVER_ECOSYSTEM: maven
+      RESOLVER_NAME: maven-dependency-resolver
+      ADAPTER_VERSION: container-v1
+      BACKEND_VERSION: legacy-java
+      MAVEN_BACKEND_JAR: /usr/local/lib/maven-resolver.jar
+      MAVEN_MAIN_CLASS: cn.edu.zju.nirvana.adapter.MavenResolverAdapterMain
+    entrypoint: ["python3", "Resolver/containerization/runtime/maven_adapter.py"]
+
+volumes:
+  cargo_home:
+    name: resolver-cargo-home-cache
+  maven_m2:
+    name: resolver-maven-m2-cache
+  pip_cache:
+    name: resolver-pip-cache

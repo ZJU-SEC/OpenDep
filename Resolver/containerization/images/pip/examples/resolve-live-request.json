@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0",
+  "request_id": "pip-live-example",
+  "trace_id": "pip-live-example-trace",
+  "command": "resolve",
+  "ecosystem": "pip",
+  "package": {
+    "name": "idna",
+    "version": "3.7.0"
+  },
+  "options": {
+    "format": "graph",
+    "timeout_ms": 1800000,
+    "return_raw": false
+  }
+}

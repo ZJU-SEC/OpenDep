@@ -1,0 +1,13 @@
+。legacy/
+__pycache__/
+*.pyc
+
+Resolver/containerization/images/npm/build/
+Resolver/containerization/images/npm/bin/
+
+Resolver/containerization/images/cargo/target/
+Resolver/containerization/images/cargo/job_once/
+
+dep_*
+
+.legacy/

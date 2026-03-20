@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0",
+  "request_id": "example-go-resolve",
+  "trace_id": "example-go-trace",
+  "command": "resolve",
+  "ecosystem": "go",
+  "package": {
+    "name": "github.com/gin-gonic/gin",
+    "version": "v1.9.1"
+  },
+  "options": {
+    "format": "graph",
+    "timeout_ms": 120000,
+    "return_raw": false
+  },
+  "context": {
+    "caller": "example"
+  }
+}

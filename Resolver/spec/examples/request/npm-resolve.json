@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0",
+  "request_id": "example-npm-resolve",
+  "trace_id": "example-npm-trace",
+  "command": "resolve",
+  "ecosystem": "npm",
+  "package": {
+    "name": "mocha",
+    "version": "10.0.0"
+  },
+  "options": {
+    "format": "graph",
+    "timeout_ms": 120000,
+    "return_raw": false
+  },
+  "context": {
+    "caller": "example"
+  }
+}

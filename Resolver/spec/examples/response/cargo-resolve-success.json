@@ -1,0 +1,107 @@
+{
+  "schema_version": "1.0",
+  "request_id": "example-cargo-resolve",
+  "trace_id": "example-cargo-trace",
+  "status": "ok",
+  "ecosystem": "cargo",
+  "resolver": {
+    "name": "cargo-dependency-resolver",
+    "adapter_version": "v1",
+    "backend_version": "legacy-rust"
+  },
+  "result": {
+    "root": {
+      "id": "cargo:rand@0.8.5",
+      "ecosystem": "cargo",
+      "name": "rand",
+      "version": "0.8.5"
+    },
+    "nodes": [
+      {
+        "id": "cargo:rand@0.8.5",
+        "ecosystem": "cargo",
+        "name": "rand",
+        "version": "0.8.5",
+        "labels": {
+          "scope": "root"
+        },
+        "attributes": {
+          "optional": false,
+          "peer": false,
+          "dev": false
+        }
+      },
+      {
+        "id": "cargo:getrandom@0.2.7",
+        "ecosystem": "cargo",
+        "name": "getrandom",
+        "version": "0.2.7",
+        "labels": {
+          "scope": "runtime"
+        },
+        "attributes": {
+          "optional": false,
+          "peer": false,
+          "dev": false
+        }
+      },
+      {
+        "id": "cargo:cfg-if@1.0.0",
+        "ecosystem": "cargo",
+        "name": "cfg-if",
+        "version": "1.0.0",
+        "labels": {
+          "scope": "runtime"
+        },
+        "attributes": {
+          "optional": false,
+          "peer": false,
+          "dev": false
+        }
+      }
+    ],
+    "edges": [
+      {
+        "from": "cargo:rand@0.8.5",
+        "to": "cargo:getrandom@0.2.7",
+        "type": "direct",
+        "constraint": null,
+        "depth": 1,
+        "attributes": {
+          "optional": false,
+          "peer": false,
+          "replaced": false
+        }
+      },
+      {
+        "from": "cargo:rand@0.8.5",
+        "to": "cargo:cfg-if@1.0.0",
+        "type": "transitive",
+        "constraint": null,
+        "depth": 2,
+        "attributes": {
+          "optional": false,
+          "peer": false,
+          "replaced": false
+        }
+      }
+    ],
+    "semantics": {
+      "source": "resolve_deps_of_version_once",
+      "raw_output": "getrandom,0.2.7,1\ncfg-if,1.0.0,2\n"
+    },
+    "metrics": {
+      "node_count": 3,
+      "edge_count": 2
+    }
+  },
+  "diagnostics": [],
+  "raw": null,
+  "timing": {
+    "duration_ms": 1
+  },
+  "metrics": {
+    "node_count": 3,
+    "edge_count": 2
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0",
+  "request_id": "example-cargo-resolve",
+  "trace_id": "example-cargo-trace",
+  "command": "resolve",
+  "ecosystem": "cargo",
+  "package": {
+    "name": "rand",
+    "version": "0.8.5"
+  },
+  "options": {
+    "format": "graph",
+    "timeout_ms": 120000,
+    "return_raw": false
+  },
+  "context": {
+    "caller": "example"
+  }
+}

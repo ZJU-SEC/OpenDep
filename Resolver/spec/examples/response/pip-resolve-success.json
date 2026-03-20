@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.0",
+  "request_id": "example-request-1",
+  "trace_id": "example-trace-1",
+  "status": "ok",
+  "ecosystem": "pip",
+  "resolver": {
+    "name": "pip-dependency-resolver",
+    "adapter_version": "v1",
+    "backend_version": "legacy"
+  },
+  "result": {
+    "root": {
+      "id": "pip:requests@2.31.0",
+      "ecosystem": "pip",
+      "name": "requests",
+      "version": "2.31.0"
+    },
+    "nodes": [
+      {
+        "id": "pip:requests@2.31.0",
+        "ecosystem": "pip",
+        "name": "requests",
+        "version": "2.31.0",
+        "labels": { "scope": "root" },
+        "attributes": { "optional": false, "peer": false, "dev": false }
+      }
+    ],
+    "edges": [],
+    "semantics": {
+      "source": "display_resolution"
+    }
+  },
+  "diagnostics": [],
+  "raw": null,
+  "timing": {
+    "duration_ms": 1
+  },
+  "metrics": {
+    "node_count": 1,
+    "edge_count": 0
+  }
+}

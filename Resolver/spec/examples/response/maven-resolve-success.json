@@ -1,0 +1,111 @@
+{
+  "schema_version": "1.0",
+  "request_id": "example-maven-resolve",
+  "trace_id": "example-maven-trace",
+  "status": "ok",
+  "ecosystem": "maven",
+  "resolver": {
+    "name": "maven-dependency-resolver",
+    "adapter_version": "v1",
+    "backend_version": "legacy-java"
+  },
+  "result": {
+    "root": {
+      "id": "maven:org.example:demo@1.0.0",
+      "ecosystem": "maven",
+      "name": "org.example:demo",
+      "version": "1.0.0"
+    },
+    "nodes": [
+      {
+        "id": "maven:org.example:demo@1.0.0",
+        "ecosystem": "maven",
+        "name": "org.example:demo",
+        "version": "1.0.0",
+        "labels": {
+          "scope": "root"
+        },
+        "attributes": {
+          "optional": false,
+          "peer": false,
+          "dev": false
+        }
+      },
+      {
+        "id": "maven:org.example:dep@2.0.0",
+        "ecosystem": "maven",
+        "name": "org.example:dep",
+        "version": "2.0.0",
+        "labels": {
+          "scope": "runtime"
+        },
+        "attributes": {
+          "optional": false,
+          "peer": false,
+          "dev": false
+        }
+      },
+      {
+        "id": "maven:org.example:util@3.1.0",
+        "ecosystem": "maven",
+        "name": "org.example:util",
+        "version": "3.1.0",
+        "labels": {
+          "scope": "runtime"
+        },
+        "attributes": {
+          "optional": false,
+          "peer": false,
+          "dev": false
+        }
+      }
+    ],
+    "edges": [
+      {
+        "from": "maven:org.example:demo@1.0.0",
+        "to": "maven:org.example:dep@2.0.0",
+        "type": "direct",
+        "constraint": "2.0.0",
+        "depth": 1,
+        "attributes": {
+          "optional": false,
+          "peer": false,
+          "replaced": false,
+          "scope": "runtime"
+        }
+      },
+      {
+        "from": "maven:org.example:dep@2.0.0",
+        "to": "maven:org.example:util@3.1.0",
+        "type": "transitive",
+        "constraint": "3.1.0",
+        "depth": 2,
+        "attributes": {
+          "optional": false,
+          "peer": false,
+          "replaced": false,
+          "scope": "runtime"
+        }
+      }
+    ],
+    "semantics": {
+      "source": "legacy-java",
+      "graph_kind": "dependency-tree"
+    },
+    "metrics": {
+      "resolver_node_count": 3,
+      "node_count": 3,
+      "edge_count": 2
+    }
+  },
+  "diagnostics": [],
+  "raw": null,
+  "timing": {
+    "duration_ms": 1
+  },
+  "metrics": {
+    "resolver_node_count": 3,
+    "node_count": 3,
+    "edge_count": 2
+  }
+}

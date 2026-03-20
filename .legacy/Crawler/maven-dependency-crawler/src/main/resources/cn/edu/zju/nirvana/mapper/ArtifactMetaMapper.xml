@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="cn.edu.zju.nirvana.mapper.ArtifactMetaMapper">
+
+    <resultMap id="MetaMap" type="cn.edu.zju.nirvana.models.ArtifactMeta" >
+        <result column="md5" property="md5" jdbcType="VARCHAR" />
+        <result column="g" property="g" jdbcType="VARCHAR" />
+        <result column="a" property="a" jdbcType="VARCHAR" />
+        <result column="v" property="v" jdbcType="VARCHAR"/>
+        <result column="describe" property="describe" jdbcType="VARCHAR"/>
+        <result column="ts" property="ts" jdbcType="VARCHAR"/>
+        <result column="rvd" property="rvd" jdbcType="BOOLEAN"/>
+        <result column="disk" property="disk" jdbcType="BOOLEAN"/>
+        <result column="deptree" property="deptree" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <insert id="inertArtifactMeta" parameterType="cn.edu.zju.nirvana.models.ArtifactMeta">
+        INSERT INTO
+            "ArtifactMeta"
+            (md5, g, a, v, describe, ts)
+        VALUES
+            (#{md5}, #{g}, #{a}, #{v}, #{describe}, #{ts})
+        ON CONFLICT DO NOTHING
+    </insert>
+
+    <select id="getByMd5" resultType="cn.edu.zju.nirvana.models.ArtifactMeta">
+        SELECT
+            md5, g, a, v, pom
+        FROM
+            "ArtifactMeta"
+        WHERE
+            md5 = #{md5}
+    </select>
+
+    <!-- Crawl Pom -->
+    <select id="getArtifactMeta2Crawl" resultMap="MetaMap">
+        SELECT
+            md5, g, a, v
+        FROM
+            "ArtifactMeta"
+        WHERE pom is null
+        LIMIT 2000000
+    </select>
+
+    <!-- sync to disk -->
+    <select id="getPom2Disk" resultMap="MetaMap">
+        SELECT
+            md5, g, a, v, pom
+        FROM
+            "ArtifactMeta"
+        WHERE (pom is not null) AND (disk = false)
+        LIMIT 500000
+    </select>
+
+    <!-- range version dependency -->
+    <select id="getArtifact2RVD" resultMap="MetaMap">
+        SELECT
+            md5, g, a, v
+        FROM
+            "ArtifactMeta"
+        WHERE (pom is not null) AND (rvd is null)
+        LIMIT 500000
+    </select>
+
+    <!-- dependency tree -->
+    <select id="getArtifact2Deptree" resultMap="MetaMap">
+        SELECT
+            md5, g, a, v
+        FROM
+            "ArtifactMeta"
+        WHERE deptree is null
+	ORDER BY ts DESC
+        LIMIT 1000000
+    </select>
+
+    <update id="updatePom">
+        UPDATE
+            "ArtifactMeta"
+        SET
+            pom = #{pom}
+        WHERE md5 = #{md5}
+    </update>
+
+    <update id="updateDisk">
+        UPDATE
+            "ArtifactMeta"
+        SET
+            disk = true
+        WHERE md5 = #{md5}
+    </update>
+
+    <update id="updateRVD">
+        UPDATE
+            "ArtifactMeta"
+        SET
+            rvd = #{rvd}
+        WHERE md5 = #{md5}
+    </update>
+
+    <update id="updateDepTree">
+        UPDATE
+            "ArtifactMeta"
+        SET
+            deptree = XML(#{deptree})
+        WHERE md5 = #{md5}
+    </update>
+
+</mapper>

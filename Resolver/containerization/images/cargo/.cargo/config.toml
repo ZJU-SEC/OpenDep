@@ -1,0 +1,9 @@
+[net]
+git-fetch-with-cli = true
+
+[source.mirror]
+# Dockerfile clones crates.io-index into /app/crates.io-index during image build.
+registry = "file:///app/crates.io-index/"
+
+[source.crates-io]
+replace-with = "mirror"
