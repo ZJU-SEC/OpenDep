@@ -1,0 +1,3 @@
+packaging
+psycopg2-binary
+tomli

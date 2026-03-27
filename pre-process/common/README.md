@@ -2,8 +2,22 @@
 
 This directory is reserved for cross-ecosystem helpers used by preprocessing and database-loading jobs.
 
+## Quick start
+
+Start the shared preprocessing PostgreSQL container from the repository root:
+
+```bash
+docker compose \
+  --env-file pre-process/common/database/.env.example \
+  -f pre-process/common/database/docker-compose.yml \
+  up -d
+```
+
+If you want custom local settings, copy `pre-process/common/database/.env.example` to
+`pre-process/common/database/.env`, edit the values, and replace the `--env-file` path.
+
 ## Subdirectories
 
-- `database/`: connection management, transaction helpers, batch writers, SQL helpers
+- `database/`: shared PostgreSQL container config, schema init scripts, connection management, transaction helpers, batch writers, SQL helpers
 - `models/`: normalized record definitions and shared internal contracts
 - `utils/`: logging, retry, serialization, path, and small helper utilities

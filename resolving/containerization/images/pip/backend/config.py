@@ -21,7 +21,7 @@ class BackendConfig:
     cache_dir: str | None = None
     index_backend: str | None = None
     index_dsn: str | None = None
-    index_table: str = "projects_metadata"
+    index_table: str = "pip_projects_metadata"
     index_fallback_to_live: bool = False
     pypi_json_base_url: str = "https://pypi.org/pypi"
     http_user_agent: str = "OpenDep-Pip-resolving/0.1"
@@ -35,7 +35,7 @@ class BackendConfig:
             cache_dir=os.getenv("PIP_CACHE_DIR") or None,
             index_backend=os.getenv("PIP_INDEX_BACKEND") or None,
             index_dsn=os.getenv("PIP_INDEX_DSN") or None,
-            index_table=os.getenv("PIP_INDEX_TABLE", "projects_metadata").strip() or "projects_metadata",
+            index_table=os.getenv("PIP_INDEX_TABLE", "pip_projects_metadata").strip() or "pip_projects_metadata",
             index_fallback_to_live=_env_bool("PIP_INDEX_FALLBACK_TO_LIVE", default=False),
             pypi_json_base_url=(os.getenv("PIP_PYPI_JSON_BASE_URL") or "https://pypi.org/pypi").rstrip("/"),
             http_user_agent=os.getenv("PIP_HTTP_USER_AGENT") or "OpenDep-Pip-resolving/0.1",

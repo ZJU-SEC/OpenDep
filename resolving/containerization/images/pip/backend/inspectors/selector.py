@@ -48,7 +48,17 @@ def _wheel_python_rank(filename: str) -> int:
         wheel = PipWheel(filename)
     except Exception:
         return 3
-    if wheel.pyversions in (["py2.py3"], ["py3"], ["any"]):
+    file_tags = tuple(getattr(wheel, "file_tags", ()) or ())
+    if file_tags:
+        interpreters = {getattr(tag, "interpreter", None) for tag in file_tags}
+        if interpreters & {"py2.py3", "py3"}:
+            return 1
+        if interpreters & {"py2", "py"}:
+            return 2
+        return 2
+
+    pyversions = getattr(wheel, "pyversions", None)
+    if pyversions in (["py2.py3"], ["py3"], ["any"]):
         return 1
     return 2
 
@@ -60,7 +70,15 @@ def _wheel_platform_rank(filename: str) -> int:
         wheel = PipWheel(filename)
     except Exception:
         return 3
-    if "any" in wheel.plats or "linux_x86_64" in wheel.plats:
+    file_tags = tuple(getattr(wheel, "file_tags", ()) or ())
+    if file_tags:
+        platforms = {getattr(tag, "platform", None) for tag in file_tags}
+        if platforms & {"any", "linux_x86_64"}:
+            return 1
+        return 2
+
+    plats = getattr(wheel, "plats", None) or ()
+    if "any" in plats or "linux_x86_64" in plats:
         return 1
     return 2
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import uuid
 from pathlib import Path
@@ -12,7 +13,7 @@ if __package__ in {None, ""}:
 
 
 from resolving.gateway.config import default_config_path, load_config
-from resolving.gateway.registry import resolvingRegistry
+from resolving.gateway.registry import ResolverRegistry
 from resolving.gateway.service import GatewayService
 
 
@@ -32,6 +33,22 @@ EPILOG = """Examples:
 ECOSYSTEM_HELP = "Target ecosystem such as npm, maven, cargo, go, or pip."
 TIMEOUT_HELP = "Optional request timeout in milliseconds."
 RETURN_RAW_HELP = "Preserve backend-native stdout, stderr, and payload data in the response."
+PIP_MODE_HELP = "pip metadata mode. Supported values: live, indexed."
+PIP_INDEX_DSN_HELP = "PostgreSQL DSN used by the pip indexed metadata store."
+PIP_INDEX_TABLE_HELP = "PostgreSQL table name used by the pip indexed metadata store."
+PIP_INDEX_BACKEND_HELP = "Indexed metadata backend for pip. Defaults to postgres."
+
+
+def add_pip_runtime_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--pip-mode", choices=("live", "indexed"), help=PIP_MODE_HELP)
+    parser.add_argument("--pip-index-dsn", help=PIP_INDEX_DSN_HELP)
+    parser.add_argument("--pip-index-table", help=PIP_INDEX_TABLE_HELP)
+    parser.add_argument("--pip-index-backend", help=PIP_INDEX_BACKEND_HELP)
+    parser.add_argument(
+        "--pip-index-fallback-to-live",
+        action="store_true",
+        help="Allow pip indexed mode to fall back to live metadata when indexed data is missing.",
+    )
 
 
 def parse_args() -> argparse.Namespace:
@@ -65,6 +82,7 @@ def parse_args() -> argparse.Namespace:
     )
     resolve.add_argument("--timeout-ms", type=int, help=TIMEOUT_HELP)
     resolve.add_argument("--return-raw", action="store_true", help=RETURN_RAW_HELP)
+    add_pip_runtime_args(resolve)
 
     list_cmd = subparsers.add_parser(
         "list",
@@ -76,6 +94,7 @@ def parse_args() -> argparse.Namespace:
     list_cmd.add_argument("--version", help="Package or module version to inspect.")
     list_cmd.add_argument("--timeout-ms", type=int, help=TIMEOUT_HELP)
     list_cmd.add_argument("--return-raw", action="store_true", help=RETURN_RAW_HELP)
+    add_pip_runtime_args(list_cmd)
 
     health = subparsers.add_parser(
         "health",
@@ -84,6 +103,7 @@ def parse_args() -> argparse.Namespace:
     )
     health.add_argument("--ecosystem", required=True, help=ECOSYSTEM_HELP)
     health.add_argument("--timeout-ms", type=int, help=TIMEOUT_HELP)
+    add_pip_runtime_args(health)
 
     capabilities = subparsers.add_parser(
         "capabilities",
@@ -92,6 +112,7 @@ def parse_args() -> argparse.Namespace:
     )
     capabilities.add_argument("--ecosystem", required=True, help=ECOSYSTEM_HELP)
     capabilities.add_argument("--timeout-ms", type=int, help=TIMEOUT_HELP)
+    add_pip_runtime_args(capabilities)
     return parser.parse_args()
 
 
@@ -118,11 +139,28 @@ def build_request(args: argparse.Namespace) -> dict:
     return request
 
 
+def apply_runtime_overrides(args: argparse.Namespace) -> None:
+    if getattr(args, "ecosystem", None) != "pip":
+        return
+
+    if getattr(args, "pip_mode", None):
+        os.environ["PIP_METADATA_MODE"] = args.pip_mode
+    if getattr(args, "pip_index_dsn", None):
+        os.environ["PIP_INDEX_DSN"] = args.pip_index_dsn
+    if getattr(args, "pip_index_table", None):
+        os.environ["PIP_INDEX_TABLE"] = args.pip_index_table
+    if getattr(args, "pip_index_backend", None):
+        os.environ["PIP_INDEX_BACKEND"] = args.pip_index_backend
+    if getattr(args, "pip_index_fallback_to_live", False):
+        os.environ["PIP_INDEX_FALLBACK_TO_LIVE"] = "true"
+
+
 def main() -> int:
     args = parse_args()
+    apply_runtime_overrides(args)
     request = build_request(args)
     config_path = args.config or str(default_config_path(args.ecosystem))
-    registry = resolvingRegistry(load_config(config_path, ecosystem=args.ecosystem))
+    registry = ResolverRegistry(load_config(config_path, ecosystem=args.ecosystem))
     service = GatewayService(registry)
     response = service.handle(request)
 

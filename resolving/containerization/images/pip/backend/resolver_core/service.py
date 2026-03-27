@@ -10,7 +10,7 @@ except ImportError:  # pragma: no cover - fallback for minimal pip environments
 try:
     from resolvelib import BaseReporter, resolving
 except ImportError:  # pragma: no cover - fallback for minimal pip environments
-    from pip._vendor.resolvelib import BaseReporter, resolving
+    from pip._vendor.resolvelib import BaseReporter, Resolver
 
 from resolving.containerization.images.pip.backend.metadata_sources.base import MetadataSource
 from resolving.containerization.images.pip.backend.resolver_core.provider import PipProvider
@@ -41,5 +41,5 @@ class ResolverCore:
         }
         provider = PipProvider(self.metadata_source, user_requested)
         reporter = self.reporter or BaseReporter()
-        resolver = resolving(provider, reporter)
+        resolver = Resolver(provider, reporter)
         return resolver.resolve(requirements, max_rounds=max_rounds)
