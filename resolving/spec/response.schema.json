@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "resolver-spec/response.schema.json",
+  "title": "resolving Specification Response",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "request_id",
+    "trace_id",
+    "status",
+    "ecosystem",
+    "resolver"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "request_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "trace_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "ok",
+        "error"
+      ]
+    },
+    "ecosystem": {
+      "type": "string",
+      "minLength": 1
+    },
+    "resolver": {
+      "type": "object",
+      "required": [
+        "name",
+        "adapter_version"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "adapter_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "backend_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "result": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": true
+    },
+    "error": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "retryable": {
+          "type": "boolean"
+        },
+        "backend_error": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "retryable"
+      ],
+      "additionalProperties": true
+    },
+    "diagnostics": {
+      "type": "array"
+    },
+    "raw": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": true
+    },
+    "timing": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "duration_ms": {
+          "type": [
+            "integer",
+            "number"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "metrics": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

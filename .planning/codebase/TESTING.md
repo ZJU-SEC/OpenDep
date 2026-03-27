@@ -6,16 +6,16 @@
 
 **Runner:**
 - There is no repository-wide automated test runner configured at the root.
-- The only clearly committed active unit test suite is the Maven backend’s JUnit Jupiter setup in `Resolver/containerization/images/maven/pom.xml`.
-- The Maven test runner is `maven-surefire-plugin` 2.22.2, configured in `Resolver/containerization/images/maven/pom.xml`.
+- The only clearly committed active unit test suite is the Maven backend’s JUnit Jupiter setup in `resolving/containerization/images/maven/pom.xml`.
+- The Maven test runner is `maven-surefire-plugin` 2.22.2, configured in `resolving/containerization/images/maven/pom.xml`.
 
 **Assertion Library:**
-- JUnit Jupiter assertions are used in `Resolver/containerization/images/maven/src/test/java/cn/edu/zju/maven/dependency/resolver/core/DependencyTreeGenerateTest.java`.
+- JUnit Jupiter assertions are used in `resolving/containerization/images/maven/src/test/java/cn/edu/zju/maven/dependency/resolver/core/DependencyTreeGenerateTest.java`.
 - Assertions include `assertThrows`, `assertTrue`, and `assertNotNull`.
 
 **Run Commands:**
 ```bash
-cd Resolver/containerization/images/maven && mvn test
+cd resolving/containerization/images/maven && mvn test
 python3 main.py capabilities --ecosystem go
 python3 main.py health --ecosystem npm
 python3 main.py resolve --ecosystem maven --name org.apache.logging.log4j:log4j-core --version 2.23.1 --format graph
@@ -25,10 +25,10 @@ python3 main.py list --ecosystem go --name github.com/kubernetes/apimachinery --
 ## Test File Organization
 
 **Location:**
-- Automated tests currently live primarily in `Resolver/containerization/images/maven/src/test/java/`.
-- The active test file discovered in this repo is `Resolver/containerization/images/maven/src/test/java/cn/edu/zju/maven/dependency/resolver/core/DependencyTreeGenerateTest.java`.
-- No Python tests were found under `Resolver/gateway/` or the root CLI.
-- No Go `_test.go` files were found under `Resolver/containerization/images/go/`.
+- Automated tests currently live primarily in `resolving/containerization/images/maven/src/test/java/`.
+- The active test file discovered in this repo is `resolving/containerization/images/maven/src/test/java/cn/edu/zju/maven/dependency/resolver/core/DependencyTreeGenerateTest.java`.
+- No Python tests were found under `resolving/gateway/` or the root CLI.
+- No Go `_test.go` files were found under `resolving/containerization/images/go/`.
 
 **Naming:**
 - Java tests use `*Test.java`, matching the production class under test.
@@ -36,7 +36,7 @@ python3 main.py list --ecosystem go --name github.com/kubernetes/apimachinery --
 
 **Structure:**
 ```text
-Resolver/containerization/images/maven/
+resolving/containerization/images/maven/
 ├── src/main/java/...                         # Java implementation
 └── src/test/java/.../DependencyTreeGenerateTest.java
 ```
@@ -61,10 +61,10 @@ Resolver/containerization/images/maven/
 
 **What to Mock:**
 - The current repo does not establish a shared mocking convention.
-- If new Python gateway tests are added, subprocess and Docker invocations in `Resolver/gateway/runner.py` and `Resolver/containerization/docker_gateway_proxy.py` are the obvious boundaries to fake.
+- If new Python gateway tests are added, subprocess and Docker invocations in `resolving/gateway/runner.py` and `resolving/containerization/docker_gateway_proxy.py` are the obvious boundaries to fake.
 
 **What NOT to Mock:**
-- Pure request/response validation helpers such as `Resolver/gateway/contract.py`.
+- Pure request/response validation helpers such as `resolving/gateway/contract.py`.
 - Normalization helpers that can be tested with direct inputs and outputs.
 
 ## Fixtures and Factories
@@ -74,7 +74,7 @@ Resolver/containerization/images/maven/
 - No shared fixture directory, factory module, or snapshot store was found for the active code paths.
 
 **Location:**
-- Request/response examples that can support manual or future automated tests live under `Resolver/spec/examples/request/` and `Resolver/spec/examples/response/`.
+- Request/response examples that can support manual or future automated tests live under `resolving/spec/examples/request/` and `resolving/spec/examples/response/`.
 
 ## Coverage
 
@@ -117,8 +117,8 @@ Resolver/containerization/images/maven/
 
 **High-Risk Untested Areas:**
 - `main.py` argument parsing and request construction.
-- `Resolver/gateway/runner.py` subprocess behavior and timeout handling.
-- `Resolver/containerization/runtime/*.py` adapter normalization for Go, Cargo, npm, and placeholder pip.
+- `resolving/gateway/runner.py` subprocess behavior and timeout handling.
+- `resolving/containerization/runtime/*.py` adapter normalization for Go, Cargo, npm, and placeholder pip.
 - Native Go, Rust, and C++ backends in the active resolver path.
 
 **Practical Guidance for New Tests:**

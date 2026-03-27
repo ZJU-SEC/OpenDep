@@ -1,0 +1,79 @@
+{
+  "resolvers": [
+    {
+      "ecosystem": "pip",
+      "mode": "process",
+      "command": [
+        "${PYTHON}",
+        "resolving/pip-dependency-resolver/adapter_main.py"
+      ],
+      "workdir": ".",
+      "timeout_ms": 60000,
+      "capabilities": {
+        "commands": ["resolve", "health", "capabilities"],
+        "formats": ["graph"],
+        "features": ["raw", "markers", "extras"]
+      }
+    },
+    {
+      "ecosystem": "maven",
+      "mode": "process",
+      "command": [
+        "${PYTHON}",
+        "resolving/maven-dependency-resolver/adapter_launcher.py"
+      ],
+      "workdir": ".",
+      "timeout_ms": 120000,
+      "capabilities": {
+        "commands": ["resolve", "health", "capabilities"],
+        "formats": ["graph"],
+        "features": ["raw", "scopes", "managed-dependencies"]
+      }
+    },
+    {
+      "ecosystem": "go",
+      "mode": "process",
+      "command": [
+        "${PYTHON}",
+        "resolving/go-dependency-resolver/adapter_launcher.py"
+      ],
+      "workdir": ".",
+      "timeout_ms": 120000,
+      "capabilities": {
+        "commands": ["resolve", "health", "capabilities"],
+        "formats": ["graph"],
+        "features": ["raw", "replace", "exclude", "buildlist"]
+      }
+    },
+    {
+      "ecosystem": "cargo",
+      "mode": "process",
+      "command": [
+        "${PYTHON}",
+        "resolving/cargo-dependency-resolver/adapter_launcher.py"
+      ],
+      "workdir": ".",
+      "timeout_ms": 120000,
+      "capabilities": {
+        "commands": ["resolve", "health", "capabilities"],
+        "formats": ["graph", "full"],
+        "features": ["raw", "features", "registry"]
+      }
+    },
+    {
+      "ecosystem": "npm",
+      "mode": "process",
+      "command": [
+        "${PYTHON}",
+        "resolving/js-dependency-resolver/adapter_launcher.py"
+      ],
+      "workdir": ".",
+      "timeout_ms": 120000,
+      "capabilities": {
+        "commands": ["resolve", "health", "capabilities"],
+        "formats": ["graph"],
+        "features": ["raw", "peer-dependencies", "directory-tree"]
+      }
+    }
+  ]
+}

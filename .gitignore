@@ -2,11 +2,11 @@
 __pycache__/
 *.pyc
 
-Resolver/containerization/images/npm/build/
-Resolver/containerization/images/npm/bin/
+resolving/containerization/images/npm/build/
+resolving/containerization/images/npm/bin/
 
-Resolver/containerization/images/cargo/target/
-Resolver/containerization/images/cargo/job_once/
+resolving/containerization/images/cargo/target/
+resolving/containerization/images/cargo/job_once/
 
 dep_*
 

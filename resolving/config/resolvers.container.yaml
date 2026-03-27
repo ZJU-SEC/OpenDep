@@ -1,0 +1,109 @@
+{
+  "resolvers": [
+    {
+      "ecosystem": "pip",
+      "mode": "process",
+      "command": [
+        "${PYTHON}",
+        "resolving/containerization/docker_gateway_proxy.py",
+        "--service",
+        "resolver-pip",
+        "--ecosystem",
+        "pip",
+        "--compose-file",
+        "resolving/containerization/docker-compose.yml"
+      ],
+      "workdir": ".",
+      "timeout_ms": 1800000, 
+      "capabilities": {
+        "commands": ["resolve", "health", "capabilities"],
+        "formats": ["graph"],
+        "features": ["raw", "markers", "extras", "cache", "indexed", "live"]
+      }
+    },
+    {
+      "ecosystem": "maven",
+      "mode": "process",
+      "command": [
+        "${PYTHON}",
+        "resolving/containerization/docker_gateway_proxy.py",
+        "--service",
+        "resolver-maven",
+        "--ecosystem",
+        "maven",
+        "--compose-file",
+        "resolving/containerization/docker-compose.yml"
+      ],
+      "workdir": ".",
+      "timeout_ms": 180000,
+      "capabilities": {
+        "commands": ["resolve", "health", "capabilities"],
+        "formats": ["graph"],
+        "features": ["raw", "scopes", "managed-dependencies"]
+      }
+    },
+    {
+      "ecosystem": "go",
+      "mode": "process",
+      "command": [
+        "${PYTHON}",
+        "resolving/containerization/docker_gateway_proxy.py",
+        "--service",
+        "resolver-go",
+        "--ecosystem",
+        "go",
+        "--compose-file",
+        "resolving/containerization/docker-compose.yml"
+      ],
+      "workdir": ".",
+      "timeout_ms": 120000,
+      "capabilities": {
+        "commands": ["resolve", "list", "health", "capabilities"],
+        "formats": ["graph", "full"],
+        "features": ["raw", "replace", "exclude", "buildlist"]
+      }
+    },
+    {
+      "ecosystem": "cargo",
+      "mode": "process",
+      "command": [
+        "${PYTHON}",
+        "resolving/containerization/docker_gateway_proxy.py",
+        "--service",
+        "resolver-cargo",
+        "--ecosystem",
+        "cargo",
+        "--compose-file",
+        "resolving/containerization/docker-compose.yml"
+      ],
+      "workdir": ".",
+      "timeout_ms": 180000,
+      "capabilities": {
+        "commands": ["resolve", "health", "capabilities"],
+        "formats": ["graph", "full"],
+        "features": ["raw", "features", "registry", "cache"]
+      }
+    },
+    {
+      "ecosystem": "npm",
+      "mode": "process",
+      "command": [
+        "${PYTHON}",
+        "resolving/containerization/docker_gateway_proxy.py",
+        "--service",
+        "resolver-npm",
+        "--ecosystem",
+        "npm",
+        "--compose-file",
+        "resolving/containerization/docker-compose.yml"
+      ],
+      "workdir": ".",
+      "timeout_ms": 180000,
+      "capabilities": {
+        "commands": ["resolve", "health", "capabilities"],
+        "formats": ["graph"],
+        "features": ["raw", "peer-dependencies", "directory-tree"]
+      }
+    }
+  ]
+}

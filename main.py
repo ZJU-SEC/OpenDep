@@ -11,14 +11,14 @@ if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 
-from Resolver.gateway.config import default_config_path, load_config
-from Resolver.gateway.registry import ResolverRegistry
-from Resolver.gateway.service import GatewayService
+from resolving.gateway.config import default_config_path, load_config
+from resolving.gateway.registry import resolvingRegistry
+from resolving.gateway.service import GatewayService
 
 
 DESCRIPTION = (
     "OpenDep resolver CLI. "
-    "This entrypoint routes requests through the Resolver gateway and automatically "
+    "This entrypoint routes requests through the resolving gateway and automatically "
     "selects the recommended resolver registry for the requested ecosystem unless "
     "--config is provided explicitly."
 )
@@ -122,7 +122,7 @@ def main() -> int:
     args = parse_args()
     request = build_request(args)
     config_path = args.config or str(default_config_path(args.ecosystem))
-    registry = ResolverRegistry(load_config(config_path, ecosystem=args.ecosystem))
+    registry = resolvingRegistry(load_config(config_path, ecosystem=args.ecosystem))
     service = GatewayService(registry)
     response = service.handle(request)
 

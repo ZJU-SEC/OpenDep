@@ -1,11 +1,11 @@
 # OpenDep
 
 OpenDep is a dependency analysis workspace centered on a unified resolver runtime.
-The current active implementation lives under `Resolver/` and is exposed through the repository-root `main.py` entrypoint.
+The current active implementation lives under `resolving/` and is exposed through the repository-root `main.py` entrypoint.
 
 ## Repository layout
 
-### `Resolver/`
+### `resolving/`
 
 The active resolver subsystem.
 It contains the gateway, resolver registry configuration, shared specification documents, and the container-backed runtime stack for supported ecosystems.
@@ -14,6 +14,11 @@ It contains the gateway, resolver registry configuration, shared specification d
 
 A placeholder directory for future crawler-related work.
 It is not part of the active runtime path today.
+
+### `pre-process/`
+
+A staging workspace for dependency dataset preprocessing and database-loading code.
+It contains shared helpers plus ecosystem-specific directories for `pip`, `npm`, `maven`, `cargo`, and `go`.
 
 ### `main.py`
 
@@ -46,13 +51,13 @@ Before running the resolver stack, make sure the host machine has:
 From the repository root, build the integrated resolver images:
 
 ```bash
-docker compose -f Resolver/containerization/docker-compose.yml build resolver-pip resolver-npm resolver-maven resolver-cargo resolver-go
+docker compose -f resolving/containerization/docker-compose.yml build resolver-pip resolver-npm resolver-maven resolver-cargo resolver-go
 ```
 
 If you prefer, you can also build all configured services:
 
 ```bash
-docker compose -f Resolver/containerization/docker-compose.yml build
+docker compose -f resolving/containerization/docker-compose.yml build
 ```
 
 ### Inspect CLI help
@@ -122,8 +127,8 @@ python3 main.py resolve --ecosystem pip|go|npm|maven|cargo --name {package_ident
 
 For more detailed subsystem documentation, continue with:
 
-1. `Resolver/README.md`
-2. `Resolver/spec/README.md`
-3. `Resolver/config/README.md`
-4. `Resolver/gateway/README.md`
-5. `Resolver/containerization/README.md`
+1. `resolving/README.md`
+2. `resolving/spec/README.md`
+3. `resolving/config/README.md`
+4. `resolving/gateway/README.md`
+5. `resolving/containerization/README.md`
