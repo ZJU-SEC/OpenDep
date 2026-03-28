@@ -1,5 +1,10 @@
 """Shared preprocessing model exports."""
 
+from maven_records import (
+    LocalRepositoryLayout,
+    MavenCoordinate,
+    WarmRequest,
+)
 from pip_records import (
     AcquiredArtifact,
     BatchBuildItemResult,
@@ -17,6 +22,9 @@ from pip_records import (
 )
 
 __all__ = [
+    "LocalRepositoryLayout",
+    "MavenCoordinate",
+    "WarmRequest",
     "AcquiredArtifact",
     "BatchBuildItemResult",
     "BatchBuildSummary",

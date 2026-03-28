@@ -1,0 +1,21 @@
+services:
+  maven-preprocess:
+    build:
+      context: ../..
+      dockerfile: pre-process/maven/Dockerfile
+    image: opendep-maven-preprocess:latest
+    working_dir: /workspace
+    environment:
+      PYTHONPATH: /workspace
+      PYTHONUNBUFFERED: "1"
+      MAVEN_PREPROCESS_REPOSITORY_ROOT: /root/.m2/repository
+    volumes:
+      - ../..:/workspace
+      - maven_m2:/root/.m2
+    stdin_open: true
+    tty: false
+    init: true
+
+volumes:
+  maven_m2:
+    name: resolver-maven-m2-cache

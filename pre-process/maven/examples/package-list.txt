@@ -1,0 +1,4 @@
+# One Maven package name (`groupId:artifactId`) per line.
+adarwin:adarwin
+org.apache.logging.log4j:log4j-core
+junit:junit

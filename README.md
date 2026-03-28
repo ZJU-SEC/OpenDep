@@ -10,11 +10,6 @@ The current active implementation lives under `resolving/` and is exposed throug
 The active resolver subsystem.
 It contains the gateway, resolver registry configuration, shared specification documents, and the container-backed runtime stack for supported ecosystems.
 
-### `Crawler/`
-
-A placeholder directory for future crawler-related work.
-It is not part of the active runtime path today.
-
 ### `pre-process/`
 
 A staging workspace for dependency dataset preprocessing and database-loading code.
