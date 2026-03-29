@@ -21,7 +21,7 @@ services:
       PIP_CACHE_DIR: /resolver-pip-cache
       PIP_INDEX_BACKEND: ${PIP_INDEX_BACKEND:-postgres}
       PIP_INDEX_DSN: ${PIP_INDEX_DSN:-}
-      PIP_INDEX_TABLE: ${PIP_INDEX_TABLE:-pip_projects_metadata}
+      PIP_INDEX_TABLE: ${PIP_INDEX_TABLE:-pip_metadata}
       PIP_INDEX_FALLBACK_TO_LIVE: ${PIP_INDEX_FALLBACK_TO_LIVE:-false}
       PIP_PYPI_JSON_BASE_URL: ${PIP_PYPI_JSON_BASE_URL:-https://pypi.org/pypi}
       PIP_HTTP_USER_AGENT: ${PIP_HTTP_USER_AGENT:-OpenDep-Pip-resolving/0.1}

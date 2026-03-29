@@ -1,0 +1,17 @@
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+WORKDIR /workspace/pre-process/common/database
+
+COPY requirements-migrations.txt /tmp/preprocess-db-migrations-requirements.txt
+
+RUN pip install --no-cache-dir -r /tmp/preprocess-db-migrations-requirements.txt
+
+COPY docker-entrypoint-migrations.sh /usr/local/bin/preprocess-db-migrations
+
+RUN chmod +x /usr/local/bin/preprocess-db-migrations
+
+ENTRYPOINT ["preprocess-db-migrations"]
+CMD ["apply"]

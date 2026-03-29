@@ -12,7 +12,6 @@ services:
       - "${PREPROCESS_DB_PORT:-55432}:5432"
     volumes:
       - preprocess_postgres_data:/var/lib/postgresql/data/pgdata
-      - ./initdb:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test:
         [
@@ -23,6 +22,26 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+
+  preprocess-db-migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile.migrations
+    image: opendep-preprocess-db-migrations:latest
+    working_dir: /workspace/pre-process/common/database
+    depends_on:
+      preprocess-db:
+        condition: service_healthy
+    environment:
+      PREPROCESS_DB_HOST: preprocess-db
+      PREPROCESS_DB_PORT: 5432
+      PREPROCESS_DB_NAME: ${PREPROCESS_DB_NAME:-opendep_preprocess}
+      PREPROCESS_DB_USER: ${PREPROCESS_DB_USER:-opendep}
+      PREPROCESS_DB_PASSWORD: ${PREPROCESS_DB_PASSWORD:-opendep}
+    volumes:
+      - ../../..:/workspace
+    restart: "no"
+    command: ["apply"]
 
 volumes:
   preprocess_postgres_data:

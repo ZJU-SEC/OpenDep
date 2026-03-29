@@ -1,0 +1,3 @@
+# One module@version per line.
+github.com/rogpeppe/godef@v1.1.2
+golang.org/x/text@v0.23.0

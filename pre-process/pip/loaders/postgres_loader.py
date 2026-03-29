@@ -25,8 +25,8 @@ from pip_models import ExtractedMetadataRecord
 from postgres import connect_postgres, execute_sql_file, postgres_cursor, postgres_transaction
 
 
-DEFAULT_TABLE_NAME = "pip_projects_metadata"
-DEFAULT_SCHEMA_FILE = PROJECT_ROOT / "pre-process" / "common" / "database" / "initdb" / "00-pip-projects-metadata.sql"
+DEFAULT_TABLE_NAME = "pip_metadata"
+DEFAULT_SCHEMA_FILE = PROJECT_ROOT / "pre-process" / "common" / "database" / "initdb" / "00-pip-metadata.sql"
 
 
 class PipMetadataPostgresLoader:

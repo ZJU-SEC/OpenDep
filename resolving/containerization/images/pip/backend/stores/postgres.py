@@ -71,7 +71,7 @@ def _deserialize_metadata(value: object) -> dict[str, Any]:
 
 
 class PostgresIndexStore(IndexStore):
-    def __init__(self, dsn: str, *, table_name: str = "pip_projects_metadata") -> None:
+    def __init__(self, dsn: str, *, table_name: str = "pip_metadata") -> None:
         self._dsn = dsn
         self._table_name = table_name
         self._driver_name, self._driver = _load_driver()

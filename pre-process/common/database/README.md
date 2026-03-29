@@ -1,6 +1,7 @@
 # Shared Pre-process Database
 
 This directory contains the shared PostgreSQL container setup used by preprocessing jobs.
+It provides the shared PostgreSQL service, the SQL migration files, and a Python-based migration runner for preprocess jobs.
 
 The intended deployment model is:
 
@@ -11,19 +12,22 @@ The intended deployment model is:
 
 ## Current table plan
 
-- `pip` -> `pip_projects_metadata`
+- `pip` -> `pip_metadata`
 - `npm` -> reserved for future table
 - `maven` -> reserved for future table
 - `cargo` -> reserved for future table
-- `go` -> reserved for future table
-
-Only the `pip` table is initialized right now.
+- `go` -> `go_metadata`
 
 ## Files
 
 - `docker-compose.yml` - shared PostgreSQL container definition
 - `.env.example` - example environment variables for local startup
-- `initdb/00-pip-projects-metadata.sql` - pip table initialization script
+- `Dockerfile.migrations` - migration-runner image definition
+- `requirements-migrations.txt` - Python dependencies for the migration runner
+- `docker-entrypoint-migrations.sh` - CLI entrypoint for yoyo commands
+- `yoyo.ini` - yoyo configuration pointing at the shared migration directory
+- `initdb/00-pip-metadata.sql` - pip migration file
+- `initdb/10-go-metadata.sql` - Go migration file
 
 ## Start the database
 
@@ -35,6 +39,14 @@ docker compose \
   -f pre-process/common/database/docker-compose.yml \
   up -d
 ```
+
+This starts:
+
+- `preprocess-db` - the shared PostgreSQL service
+- `preprocess-db-migrate` - a one-shot Python migration runner based on `yoyo-migrations`
+
+The migration runner reads SQL files from `pre-process/common/database/initdb/` and records applied migrations in yoyo's tracking tables in PostgreSQL.
+On later startups it only applies migration files that have not yet been recorded.
 
 If you want a local editable env file:
 
@@ -84,17 +96,27 @@ postgresql://opendep:opendep@host.docker.internal:55432/opendep_preprocess
 The pip preprocessing and indexed resolver paths should target:
 
 - database: `opendep_preprocess`
-- table: `pip_projects_metadata`
+- table: `pip_metadata`
+- schema file: `pre-process/common/database/initdb/00-pip-metadata.sql`
 
 For the pip resolver, the matching environment variables are:
 
 ```text
 PIP_INDEX_DSN=postgresql://opendep:opendep@127.0.0.1:55432/opendep_preprocess
-PIP_INDEX_TABLE=pip_projects_metadata
+PIP_INDEX_TABLE=pip_metadata
 ```
+
+## go integration
+
+The Go preprocessing and future indexed resolver paths should target:
+
+- database: `opendep_preprocess`
+- table: `go_metadata`
+- schema file: `pre-process/common/database/initdb/10-go-metadata.sql`
 
 ## Notes
 
-- The initialization scripts in `initdb/` only run automatically on first container startup with an empty data volume.
-- If you need to re-run schema initialization from scratch, remove the database volume first or apply the SQL manually with `psql`.
-- Additional ecosystem tables should be added as new SQL files in `initdb/`, instead of creating separate PostgreSQL containers.
+- The shared DB stack now uses `yoyo-migrations`, a Python migration framework, instead of relying on PostgreSQL's one-time `/docker-entrypoint-initdb.d` behavior.
+- Yoyo tracks applied migrations in database tables such as `_yoyo_migration`, `_yoyo_log`, `_yoyo_version`, and `yoyo_lock`.
+- After a migration file has been applied, do not edit it in place. Create a new higher-ordered SQL migration file for later schema changes.
+- The current pip and Go tables are defined in separate ecosystem-specific files under `pre-process/common/database/initdb/`.

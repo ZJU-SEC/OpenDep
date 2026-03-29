@@ -19,7 +19,7 @@ It supports two metadata modes:
   - easiest to use, but slower
 - `indexed`
   - reads pre-extracted metadata from PostgreSQL
-  - requires the preprocess pipeline to populate `pip_projects_metadata` first
+  - requires the preprocess pipeline to populate `pip_metadata` first
   - faster and more stable for repeated resolution
 
 ## Build the Image
@@ -83,7 +83,7 @@ docker compose \
   up -d
 ```
 
-Populate `pip_projects_metadata` first. Example:
+Populate `pip_metadata` first. Example:
 
 ```bash
 docker compose -f pre-process/pip/docker-compose.yml run --rm pip-preprocess \
@@ -115,7 +115,7 @@ printf '%s\n' '{
 }' | docker run --rm -i \
   -e PIP_METADATA_MODE=indexed \
   -e PIP_INDEX_DSN='postgresql://opendep:opendep@host.docker.internal:55432/opendep_preprocess' \
-  -e PIP_INDEX_TABLE='pip_projects_metadata' \
+  -e PIP_INDEX_TABLE='pip_metadata' \
   pip-resolver:latest
 ```
 
@@ -128,7 +128,7 @@ printf '%s\n' "$(cat resolving/containerization/images/pip/examples/resolve-inde
   | docker run --rm -i \
       -e PIP_METADATA_MODE=indexed \
       -e PIP_INDEX_DSN='postgresql://opendep:opendep@host.docker.internal:55432/opendep_preprocess' \
-      -e PIP_INDEX_TABLE='pip_projects_metadata' \
+      -e PIP_INDEX_TABLE='pip_metadata' \
       pip-resolver:latest
 ```
 
@@ -136,5 +136,5 @@ printf '%s\n' "$(cat resolving/containerization/images/pip/examples/resolve-inde
 
 - The container default command is the pip runtime adapter, so you only need to pipe request JSON into `docker run`.
 - `indexed` mode does not fetch missing releases from PyPI unless you explicitly enable fallback in the environment.
-- The default indexed table is `pip_projects_metadata`.
+- The default indexed table is `pip_metadata`.
 - Inside Docker, `127.0.0.1` points to the resolver container itself. For a PostgreSQL service running on the host, use `host.docker.internal` or your actual reachable database host.

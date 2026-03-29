@@ -95,7 +95,7 @@ python3 main.py resolve --ecosystem pip|go|npm|maven|cargo --name {package_ident
 For pip, you can also switch metadata mode directly from `main.py`:
 
 ```bash
-python3 main.py resolve --ecosystem pip --name requests --version 2.32.5 --format graph --pip-mode indexed --pip-index-dsn 'postgresql://opendep:opendep@host.docker.internal:55432/opendep_preprocess' --pip-index-table pip_projects_metadata
+python3 main.py resolve --ecosystem pip --name requests --version 2.32.5 --format graph --pip-mode indexed --pip-index-dsn 'postgresql://opendep:opendep@host.docker.internal:55432/opendep_preprocess' --pip-index-table pip_metadata
 
 python3 main.py resolve --ecosystem pip --name requests --version 2.32.5 --format graph --pip-mode live
 ```
