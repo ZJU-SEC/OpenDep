@@ -110,7 +110,7 @@ services:
       ADAPTER_VERSION: container-v1
       BACKEND_VERSION: legacy-java
       MAVEN_BACKEND_JAR: /usr/local/lib/maven-resolver.jar
-      MAVEN_MAIN_CLASS: cn.edu.zju.nirvana.adapter.MavenResolverAdapterMain
+      MAVEN_MAIN_CLASS: cn.edu.zju.nirvana.maven.adapter.MavenResolverAdapterMain
     entrypoint: ["python3", "resolving/containerization/runtime/maven_adapter.py"]
 
   preprocess-maven:

@@ -7,8 +7,7 @@
         </encoder>
     </appender>
 
-    <logger name="cn.edu.zju.maven.dependency.resolver.indexer" level="INFO"/>
-    <logger name="cn.edu.zju.maven.dependency.resolver.core.SimpleDependencyResolver" level="INFO"/>
+    <logger name="cn.edu.zju.nirvana.maven.adapter.MavenSingleResolver" level="INFO"/>
     
     <root level="ERROR">
         <appender-ref ref="STDOUT"/>

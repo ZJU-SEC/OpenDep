@@ -3,7 +3,7 @@
 set -e
 
 JAR_PATH="${MAVEN_RESOLVER_JAR:-/usr/local/lib/maven-resolver.jar}"
-MAIN_CLASS="${MAVEN_RESOLVER_MAIN_CLASS:-cn.edu.zju.nirvana.adapter.MavenResolverAdapterMain}"
+MAIN_CLASS="${MAVEN_RESOLVER_MAIN_CLASS:-cn.edu.zju.nirvana.maven.adapter.MavenResolverAdapterMain}"
 
 if [ ! -f "$JAR_PATH" ] && [ -f "target/maven-resolver.jar" ]; then
     JAR_PATH="target/maven-resolver.jar"

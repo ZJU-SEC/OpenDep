@@ -1,6 +1,6 @@
-package cn.edu.zju.nirvana.adapter;
+package cn.edu.zju.nirvana.maven.adapter;
 
-import cn.edu.zju.maven.dependency.resolver.core.utils.Booter;
+import cn.edu.zju.nirvana.maven.bootstrap.Booter;
 import org.eclipse.aether.DefaultRepositorySystemSession;
 import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.artifact.Artifact;

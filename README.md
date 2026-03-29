@@ -95,8 +95,9 @@ python3 main.py resolve --ecosystem pip|go|npm|maven|cargo --name {package_ident
 For pip, you can also switch metadata mode directly from `main.py`:
 
 ```bash
-python3 main.py resolve --ecosystem pip --name requests --version 2.32.5 --format graph --pip-mode live
 python3 main.py resolve --ecosystem pip --name requests --version 2.32.5 --format graph --pip-mode indexed --pip-index-dsn 'postgresql://opendep:opendep@host.docker.internal:55432/opendep_preprocess' --pip-index-table pip_projects_metadata
+
+python3 main.py resolve --ecosystem pip --name requests --version 2.32.5 --format graph --pip-mode live
 ```
 
 ### Run the Go `list` command
@@ -105,7 +106,13 @@ The `list` command is currently implemented for the Go resolver path.
 Replace `{package_identity}` and `{version}` with Go module values:
 
 ```bash
-python3 main.py list --ecosystem go --name {package_identity} --version {version}
+python3 main.py resolve --ecosystem go --name github.com/rogpeppe/godef --version v1.1.2
+```
+
+### Run the Maven command
+
+```bash
+python3 main.py resolve --ecosystem maven --name org.apache.logging.log4j:log4j-core --version 2.23.1
 ```
 
 ### Request raw backend output

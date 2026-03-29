@@ -84,7 +84,9 @@ docker compose -f resolving/containerization/docker-compose.yml run --rm \
 
 ```bash
 docker compose -f resolving/containerization/docker-compose.yml run --rm \
-  resolver-maven org.apache.logging.log4j:log4j-core:2.23.1
+  --entrypoint /usr/local/bin/maven-resolver \
+  resolver-maven \
+  org.apache.logging.log4j:log4j-core:2.23.1
 ```
 
 ## Common Commands

@@ -114,7 +114,6 @@
     </dependencies>
 
     <build>
-        <finalName>maven-dependency-tree-generator</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -136,7 +135,7 @@
                     </descriptorRefs>
                     <archive>
                         <manifest>
-                            <mainClass>cn.edu.zju.maven.dependency.resolver.Main</mainClass>
+                            <mainClass>cn.edu.zju.nirvana.maven.adapter.MavenResolverAdapterMain</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

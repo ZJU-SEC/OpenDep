@@ -1,4 +1,4 @@
-package cn.edu.zju.nirvana.adapter;
+package cn.edu.zju.nirvana.maven.adapter;
 
 public class MavenResolverAdapterMain {
     public static void main(String[] args) throws Exception {

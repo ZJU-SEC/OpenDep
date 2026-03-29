@@ -30,7 +30,7 @@ from resolving.containerization.runtime.launcher_normalization import ensure_gra
 ADAPTER_NAME = os.getenv("RESOLVER_NAME", "maven-dependency-resolver")
 ADAPTER_VERSION = os.getenv("ADAPTER_VERSION", "container-v1")
 BACKEND_VERSION = os.getenv("BACKEND_VERSION", "legacy-java")
-JAVA_MAIN_CLASS = os.getenv("MAVEN_MAIN_CLASS", "cn.edu.zju.nirvana.adapter.MavenResolverAdapterMain")
+JAVA_MAIN_CLASS = os.getenv("MAVEN_MAIN_CLASS", "cn.edu.zju.nirvana.maven.adapter.MavenResolverAdapterMain")
 BACKEND_JAR = Path(os.getenv("MAVEN_BACKEND_JAR", "/usr/local/lib/maven-resolver.jar"))
 METADATA = AdapterMetadata(
     name=ADAPTER_NAME,

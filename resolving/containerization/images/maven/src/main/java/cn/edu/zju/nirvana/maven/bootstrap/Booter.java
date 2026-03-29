@@ -1,6 +1,5 @@
-package cn.edu.zju.maven.dependency.resolver.core.utils;
+package cn.edu.zju.nirvana.maven.bootstrap;
 
-import cn.edu.zju.maven.dependency.resolver.core.manual.ManualRepositorySystemFactory;
 import org.apache.maven.repository.internal.MavenRepositorySystemUtils;
 import org.eclipse.aether.DefaultRepositorySystemSession;
 import org.eclipse.aether.RepositorySystem;
