@@ -73,6 +73,42 @@ class GoProxyClient:
         escaped_version = escape_module_version(version)
         return f"{self._base_url}/{escaped_path}/@v/{escaped_version}.mod"
 
+    def build_list_url(self, module_path: str) -> str:
+        escaped_path = escape_module_path(module_path)
+        return f"{self._base_url}/{escaped_path}/@v/list"
+
+    def list_versions(self, module_path: str) -> tuple[str, ...]:
+        request_url = self.build_list_url(module_path)
+        request = Request(
+            request_url,
+            headers={"User-Agent": "opendep-go-preprocess/0.1"},
+            method="GET",
+        )
+
+        try:
+            with urlopen(request, timeout=self._timeout_seconds, context=self._ssl_context) as response:
+                body = response.read().decode("utf-8", errors="replace")
+        except HTTPError as exc:
+            detail = exc.read().decode("utf-8", errors="replace").strip() or None
+            raise GoProxyClientError(
+                f"go proxy returned status {exc.code} while listing versions for {module_path}",
+                url=request_url,
+                status_code=exc.code,
+                detail=detail,
+            ) from exc
+        except URLError as exc:
+            raise GoProxyClientError(
+                f"go proxy version listing failed for {module_path}: {exc.reason}",
+                url=request_url,
+            ) from exc
+
+        ordered_versions: dict[str, None] = {}
+        for line in body.splitlines():
+            version = line.strip()
+            if version:
+                ordered_versions[version] = None
+        return tuple(ordered_versions)
+
     def fetch_raw_mod(self, module_path: str, version: str) -> GoModDownload:
         request_url = self.build_mod_url(module_path, version)
         request = Request(

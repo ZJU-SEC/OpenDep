@@ -37,6 +37,10 @@ PIP_MODE_HELP = "pip metadata mode. Supported values: live, indexed."
 PIP_INDEX_DSN_HELP = "PostgreSQL DSN used by the pip indexed metadata store."
 PIP_INDEX_TABLE_HELP = "PostgreSQL table name used by the pip indexed metadata store."
 PIP_INDEX_BACKEND_HELP = "Indexed metadata backend for pip. Defaults to postgres."
+GO_MODE_HELP = "go metadata mode. Supported values: online, indexed."
+GO_INDEX_DSN_HELP = "PostgreSQL DSN used by the go indexed metadata store."
+GO_INDEX_TABLE_HELP = "PostgreSQL table name used by the go indexed metadata store."
+GO_INDEX_FALLBACK_HELP = "Allow go indexed mode to fall back to online metadata when indexed data is missing. Enabled by default."
 
 
 def add_pip_runtime_args(parser: argparse.ArgumentParser) -> None:
@@ -48,6 +52,17 @@ def add_pip_runtime_args(parser: argparse.ArgumentParser) -> None:
         "--pip-index-fallback-to-live",
         action="store_true",
         help="Allow pip indexed mode to fall back to live metadata when indexed data is missing.",
+    )
+
+
+def add_go_runtime_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--go-mode", choices=("online", "indexed"), help=GO_MODE_HELP)
+    parser.add_argument("--go-index-dsn", help=GO_INDEX_DSN_HELP)
+    parser.add_argument("--go-index-table", help=GO_INDEX_TABLE_HELP)
+    parser.add_argument(
+        "--go-index-fallback-to-online",
+        action="store_true",
+        help=GO_INDEX_FALLBACK_HELP,
     )
 
 
@@ -83,6 +98,7 @@ def parse_args() -> argparse.Namespace:
     resolve.add_argument("--timeout-ms", type=int, help=TIMEOUT_HELP)
     resolve.add_argument("--return-raw", action="store_true", help=RETURN_RAW_HELP)
     add_pip_runtime_args(resolve)
+    add_go_runtime_args(resolve)
 
     list_cmd = subparsers.add_parser(
         "list",
@@ -95,6 +111,7 @@ def parse_args() -> argparse.Namespace:
     list_cmd.add_argument("--timeout-ms", type=int, help=TIMEOUT_HELP)
     list_cmd.add_argument("--return-raw", action="store_true", help=RETURN_RAW_HELP)
     add_pip_runtime_args(list_cmd)
+    add_go_runtime_args(list_cmd)
 
     health = subparsers.add_parser(
         "health",
@@ -104,6 +121,7 @@ def parse_args() -> argparse.Namespace:
     health.add_argument("--ecosystem", required=True, help=ECOSYSTEM_HELP)
     health.add_argument("--timeout-ms", type=int, help=TIMEOUT_HELP)
     add_pip_runtime_args(health)
+    add_go_runtime_args(health)
 
     capabilities = subparsers.add_parser(
         "capabilities",
@@ -113,6 +131,7 @@ def parse_args() -> argparse.Namespace:
     capabilities.add_argument("--ecosystem", required=True, help=ECOSYSTEM_HELP)
     capabilities.add_argument("--timeout-ms", type=int, help=TIMEOUT_HELP)
     add_pip_runtime_args(capabilities)
+    add_go_runtime_args(capabilities)
     return parser.parse_args()
 
 
@@ -140,19 +159,29 @@ def build_request(args: argparse.Namespace) -> dict:
 
 
 def apply_runtime_overrides(args: argparse.Namespace) -> None:
-    if getattr(args, "ecosystem", None) != "pip":
+    ecosystem = getattr(args, "ecosystem", None)
+    if ecosystem == "pip":
+        if getattr(args, "pip_mode", None):
+            os.environ["PIP_METADATA_MODE"] = args.pip_mode
+        if getattr(args, "pip_index_dsn", None):
+            os.environ["PIP_INDEX_DSN"] = args.pip_index_dsn
+        if getattr(args, "pip_index_table", None):
+            os.environ["PIP_INDEX_TABLE"] = args.pip_index_table
+        if getattr(args, "pip_index_backend", None):
+            os.environ["PIP_INDEX_BACKEND"] = args.pip_index_backend
+        if getattr(args, "pip_index_fallback_to_live", False):
+            os.environ["PIP_INDEX_FALLBACK_TO_LIVE"] = "true"
         return
 
-    if getattr(args, "pip_mode", None):
-        os.environ["PIP_METADATA_MODE"] = args.pip_mode
-    if getattr(args, "pip_index_dsn", None):
-        os.environ["PIP_INDEX_DSN"] = args.pip_index_dsn
-    if getattr(args, "pip_index_table", None):
-        os.environ["PIP_INDEX_TABLE"] = args.pip_index_table
-    if getattr(args, "pip_index_backend", None):
-        os.environ["PIP_INDEX_BACKEND"] = args.pip_index_backend
-    if getattr(args, "pip_index_fallback_to_live", False):
-        os.environ["PIP_INDEX_FALLBACK_TO_LIVE"] = "true"
+    if ecosystem == "go":
+        if getattr(args, "go_mode", None):
+            os.environ["GO_METADATA_MODE"] = args.go_mode
+        if getattr(args, "go_index_dsn", None):
+            os.environ["GO_INDEX_DSN"] = args.go_index_dsn
+        if getattr(args, "go_index_table", None):
+            os.environ["GO_INDEX_TABLE"] = args.go_index_table
+        if getattr(args, "go_index_fallback_to_online", False):
+            os.environ["GO_INDEX_FALLBACK_TO_ONLINE"] = "true"
 
 
 def main() -> int:

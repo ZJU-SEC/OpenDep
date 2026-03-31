@@ -1,3 +1,16 @@
-# One module@version per line.
-github.com/rogpeppe/godef@v1.1.2
-golang.org/x/text@v0.23.0
+# One module or module@version per line.
+# If the version is omitted, the preprocess pipeline will fetch all versions
+# returned by the Go proxy /@v/list endpoint.
+github.com/rogpeppe/godef
+golang.org/x/text
+9fans.net/go@v0.0.0-20181112161441-237454027057
+golang.org/x/crypto@v0.0.0-20190308221718-c2843e01d9a2
+golang.org/x/crypto@v0.0.0-20191011191535-87dc89f01550
+golang.org/x/mod@v0.1.1-0.20191105210325-c90efee705ee
+golang.org/x/net@v0.0.0-20190404232315-eb5bcb51f2a3
+golang.org/x/net@v0.0.0-20190620200207-3b0461eec859
+golang.org/x/sync@v0.0.0-20190423024810-112230192c58
+golang.org/x/sys@v0.0.0-20190215142949-d0b11bdaac8a
+golang.org/x/sys@v0.0.0-20190412213103-97732733099d
+golang.org/x/tools@v0.0.0-20200226224502-204d844ad48d
+golang.org/x/xerrors@v0.0.0-20191011141410-1b5146add898

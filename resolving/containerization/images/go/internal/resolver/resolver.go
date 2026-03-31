@@ -24,12 +24,12 @@ type ResolveResult struct {
 	ExcludeRules     map[module.Version]bool
 }
 
-type resolving struct {
+type Resolver struct {
 	source src.ModSource
 }
 
-func New(source src.ModSource) *resolving {
-	return &resolving{source: source}
+func New(source src.ModSource) *Resolver {
+	return &Resolver{source: source}
 }
 
 func pruningForGoVersion(goVersion string) bool {
@@ -120,7 +120,7 @@ func mapSourceError(err error, mod module.Version) error {
 	}
 }
 
-func (r *resolving) Resolve(ctx context.Context, target module.Version) (*ResolveResult, error) {
+func (r *Resolver) Resolve(ctx context.Context, target module.Version) (*ResolveResult, error) {
 	if target.Path == "" || target.Version == "" {
 		return nil, &Error{Code: ErrorInvalidArgument, Message: "target module path and version are required", Retryable: false}
 	}

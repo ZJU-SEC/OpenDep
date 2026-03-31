@@ -42,7 +42,7 @@ docker compose -f pre-process/go/docker-compose.yml build
 
 ## Recommended Workflow
 
-For bulk indexing, use a plain text module list with one `module@version` per line.
+For bulk indexing, use a plain text module list with one `module` or `module@version` per line.
 
 Example file:
 
@@ -53,22 +53,31 @@ github.com/rogpeppe/godef@v1.1.2
 golang.org/x/text@v0.23.0
 ```
 
+If a line omits the version, the preprocess pipeline first calls the Go proxy
+`/@v/list` endpoint for that module, then fetches and stores every listed
+version.
+
 Run the recommended module-file workflow:
 
 ```bash
 docker compose -f pre-process/go/docker-compose.yml run --rm go-preprocess \
   build \
   --module-file /workspace/pre-process/go/examples/module-list.txt \
+  --concurrency 4 \
   --pretty
 ```
 
 This will:
 
-1. read each `module@version` entry from the file
-2. fetch `/<escaped module>/@v/<escaped version>.mod` from the configured Go proxy
-3. compute `raw_mod_sha256`
-4. rely on the shared yoyo migration runner over `pre-process/common/database/initdb/`
-5. upsert rows into `go_metadata`
+1. read each `module` or `module@version` entry from the file
+2. when a version is omitted, call `/<escaped module>/@v/list` to enumerate all known versions
+3. fetch `/<escaped module>/@v/<escaped version>.mod` from the configured Go proxy
+4. compute `raw_mod_sha256`
+5. rely on the shared yoyo migration runner over `pre-process/common/database/initdb/`
+6. upsert rows into `go_metadata`
+
+Use `--concurrency N` when you want to overlap Go proxy fetches for larger module lists.
+The default is `1`, which keeps the fetch path fully sequential.
 
 ## Other Docker Commands
 
@@ -88,6 +97,16 @@ docker compose -f pre-process/go/docker-compose.yml run --rm go-preprocess \
   build \
   --module-file /workspace/pre-process/go/examples/module-list.txt \
   --skip-existing \
+  --pretty
+```
+
+Increase fetch parallelism for batch ingestion:
+
+```bash
+docker compose -f pre-process/go/docker-compose.yml run --rm go-preprocess \
+  build \
+  --module-file /workspace/pre-process/go/examples/module-list.txt \
+  --concurrency 8 \
   --pretty
 ```
 

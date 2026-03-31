@@ -66,8 +66,12 @@ services:
       ADAPTER_VERSION: container-v1
       BACKEND_VERSION: native-go
       GO_BACKEND_BINARY: /usr/local/bin/go-resolver
-      GO_PROXY_BASE_URL: https://proxy.golang.org
-      GO_DEFAULT_TIMEOUT_MS: 120000
+      GO_METADATA_MODE: ${GO_METADATA_MODE:-online}
+      GO_PROXY_BASE_URL: ${GO_PROXY_BASE_URL:-https://proxy.golang.org}
+      GO_INDEX_DSN: ${GO_INDEX_DSN:-}
+      GO_INDEX_TABLE: ${GO_INDEX_TABLE:-go_metadata}
+      GO_INDEX_FALLBACK_TO_ONLINE: ${GO_INDEX_FALLBACK_TO_ONLINE:-true}
+      GO_DEFAULT_TIMEOUT_MS: ${GO_DEFAULT_TIMEOUT_MS:-120000}
     entrypoint: ["python3", "resolving/containerization/runtime/go_adapter.py"]
 
   resolver-cargo:

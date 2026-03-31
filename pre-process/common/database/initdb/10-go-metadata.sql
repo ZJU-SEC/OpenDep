@@ -1,4 +1,5 @@
 CREATE TABLE IF NOT EXISTS public.go_metadata (
+    id BIGSERIAL PRIMARY KEY,
     module_path TEXT NOT NULL CHECK (btrim(module_path) <> ''),
     version TEXT NOT NULL CHECK (btrim(version) <> ''),
     raw_mod TEXT NOT NULL,
@@ -7,8 +8,11 @@ CREATE TABLE IF NOT EXISTS public.go_metadata (
     fetched_at TIMESTAMPTZ NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    PRIMARY KEY (module_path, version)
+    UNIQUE (module_path, version)
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_pip_metadata_name_version
+    ON public.go_metadata (module_path, version);
 
 CREATE INDEX IF NOT EXISTS idx_go_metadata_updated_at
     ON public.go_metadata (updated_at DESC);

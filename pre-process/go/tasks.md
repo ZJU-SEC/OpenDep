@@ -113,7 +113,7 @@ Non-goals for v1:
 - [x] Support explicit single-input ingestion with `--module module@version`.
 - [x] Support batch ingestion with `--module-file /path/to/module-list.txt`.
 - [x] Support `--dsn`, `--ensure-schema`, `--skip-existing`, `--proxy-base-url`, and `--pretty`.
-- [ ] Add `--concurrency` support.
+- [x] Add `--concurrency` support.
 - [x] Implement Go proxy path/version escaping compatible with the current resolver behavior.
 - [x] Fetch `/<escaped module>/@v/<escaped version>.mod` and store the payload exactly as returned.
 - [x] Compute `raw_mod_sha256` before each upsert.
@@ -142,20 +142,20 @@ Non-goals for v1:
 
 ### Phase 6. Tests and Validation
 
-- [ ] Add unit tests for `module@version` parsing and validation.
-- [ ] Add unit tests for Go proxy escaping compatibility.
-- [ ] Add unit tests for PostgreSQL upsert behavior.
-- [ ] Add unit tests for `--skip-existing` behavior.
-- [ ] Add an integration test using a stub HTTP server plus local PostgreSQL.
-- [ ] Run a smoke test with a small representative module list and verify that rows can be queried directly by `(module_path, version)`.
+- [x] Add unit tests for `module@version` parsing and validation.
+- [x] Add unit tests for Go proxy escaping compatibility.
+- [x] Add unit tests for PostgreSQL upsert behavior.
+- [x] Add unit tests for `--skip-existing` behavior.
+- [x] Add an integration test using a stub HTTP server plus local PostgreSQL.
+- [x] Run a smoke test with a small representative module list and verify that rows can be queried directly by `(module_path, version)`.
 
 ### Phase 7. Resolver Handoff Follow-up
 
-- [ ] Add a new PostgreSQL-backed source implementation under `resolving/containerization/images/go/internal/source/`.
-- [ ] Keep the source contract aligned with `FetchGoMod(ctx, module.Version)`.
-- [ ] In indexed mode, query `go_metadata` by `(module_path, version)`, read `raw_mod`, and continue using the existing parser.
-- [ ] Keep `ProxySource` available as the default or fallback until indexed mode is validated end to end.
-- [ ] Add resolver configuration for switching between `online` and `indexed` metadata modes.
+- [x] Add a new PostgreSQL-backed source implementation under `resolving/containerization/images/go/internal/source/`.
+- [x] Keep the source contract aligned with `FetchGoMod(ctx, module.Version)`.
+- [x] In indexed mode, query `go_metadata` by `(module_path, version)`, read `raw_mod`, and continue using the existing parser.
+- [x] Keep `ProxySource` available as the default or fallback until indexed mode is validated end to end.
+- [x] Add resolver configuration for switching between `online` and `indexed` metadata modes.
 
 ## Acceptance Criteria
 

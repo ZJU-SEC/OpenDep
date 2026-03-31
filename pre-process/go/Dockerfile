@@ -10,7 +10,7 @@ COPY requirements.txt /tmp/preprocess-go-requirements.txt
 
 RUN pip install --no-cache-dir -r /tmp/preprocess-go-requirements.txt
 
-COPY docker-entrypoint.sh /usr/local/bin/preprocess-go
+COPY go/docker-entrypoint.sh /usr/local/bin/preprocess-go
 
 RUN chmod +x /usr/local/bin/preprocess-go
 

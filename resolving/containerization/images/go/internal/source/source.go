@@ -76,3 +76,34 @@ func (s *CachingSource) FetchGoMod(ctx context.Context, mod module.Version) (*mo
 	s.mu.Unlock()
 	return meta, nil
 }
+
+type FallbackSource struct {
+	primary  ModSource
+	fallback ModSource
+}
+
+func NewFallbackSource(primary ModSource, fallback ModSource) *FallbackSource {
+	return &FallbackSource{
+		primary:  primary,
+		fallback: fallback,
+	}
+}
+
+func (s *FallbackSource) FetchGoMod(ctx context.Context, mod module.Version) (*model.ModuleMeta, error) {
+	meta, err := s.primary.FetchGoMod(ctx, mod)
+	if err == nil {
+		return meta, nil
+	}
+
+	sourceErr, ok := err.(*Error)
+	if !ok {
+		return nil, err
+	}
+
+	switch sourceErr.Code {
+	case ErrorNotFound, ErrorDataSourceUnavailable, ErrorProtocol:
+		return s.fallback.FetchGoMod(ctx, mod)
+	default:
+		return nil, err
+	}
+}

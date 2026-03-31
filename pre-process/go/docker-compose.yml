@@ -1,8 +1,8 @@
 services:
   go-preprocess:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: go/Dockerfile
     image: opendep-go-preprocess:latest
     working_dir: /workspace
     environment:

@@ -31,7 +31,13 @@ ADAPTER_NAME = os.getenv("RESOLVER_NAME", "go-dependency-resolver")
 ADAPTER_VERSION = os.getenv("ADAPTER_VERSION", "container-v1")
 BACKEND_VERSION = os.getenv("BACKEND_VERSION", "native-go")
 BACKEND_BINARY = Path(os.getenv("GO_BACKEND_BINARY", "/usr/local/bin/go-resolver"))
+METADATA_MODE = (os.getenv("GO_METADATA_MODE", "online").strip() or "online").lower()
 PROXY_BASE_URL = os.getenv("GO_PROXY_BASE_URL", "https://proxy.golang.org")
+INDEX_DSN = os.getenv("GO_INDEX_DSN", "").strip()
+INDEX_TABLE = os.getenv("GO_INDEX_TABLE", "go_metadata").strip() or "go_metadata"
+INDEX_FALLBACK_TO_ONLINE = (
+    os.getenv("GO_INDEX_FALLBACK_TO_ONLINE", "true").strip().lower() in {"1", "true", "yes", "on"}
+)
 DEFAULT_TIMEOUT_MS = int(os.getenv("GO_DEFAULT_TIMEOUT_MS", "120000"))
 METADATA = AdapterMetadata(
     name=ADAPTER_NAME,
@@ -45,6 +51,7 @@ KNOWN_BACKEND_ERRORS = {
     "VERSION_NOT_FOUND": ("VERSION_NOT_FOUND", False),
     "PACKAGE_NOT_FOUND": ("PACKAGE_NOT_FOUND", False),
     "DATA_SOURCE_UNAVAILABLE": ("DATA_SOURCE_UNAVAILABLE", True),
+    "BACKEND_MISCONFIGURED": ("BACKEND_MISCONFIGURED", False),
     "UNSUPPORTED_REPLACE": ("UNSUPPORTED_REPLACE", False),
     "PROTOCOL_ERROR": ("PROTOCOL_ERROR", False),
 }
@@ -66,7 +73,8 @@ def build_capabilities() -> dict[str, Any]:
     return {
         "commands": ["resolve", "list", "health", "capabilities"],
         "formats": ["graph", "full"],
-        "features": ["raw", "replace", "exclude", "buildlist"],
+        "features": ["raw", "replace", "exclude", "buildlist", "indexed-postgres"],
+        "metadata_modes": ["online", "indexed"],
         "platform": False,
     }
 
@@ -86,11 +94,34 @@ def check_health() -> dict[str, Any]:
             "details": str(BACKEND_BINARY) if backend_ready else f"missing backend binary: {BACKEND_BINARY}",
         },
         {
-            "name": "go_proxy_base_url",
-            "status": "ok" if PROXY_BASE_URL else "error",
-            "details": PROXY_BASE_URL or "GO_PROXY_BASE_URL is empty",
+            "name": "go_metadata_mode",
+            "status": "ok" if METADATA_MODE in {"online", "indexed"} else "error",
+            "details": METADATA_MODE,
         },
     ]
+    if METADATA_MODE == "online" or INDEX_FALLBACK_TO_ONLINE:
+        checks.append(
+            {
+                "name": "go_proxy_base_url",
+                "status": "ok" if PROXY_BASE_URL else "error",
+                "details": PROXY_BASE_URL or "GO_PROXY_BASE_URL is empty",
+            }
+        )
+    if METADATA_MODE == "indexed":
+        checks.extend(
+            [
+                {
+                    "name": "go_index_dsn",
+                    "status": "ok" if INDEX_DSN else "error",
+                    "details": "configured" if INDEX_DSN else "GO_INDEX_DSN is not set",
+                },
+                {
+                    "name": "go_index_table",
+                    "status": "ok" if INDEX_TABLE else "error",
+                    "details": INDEX_TABLE or "GO_INDEX_TABLE is empty",
+                },
+            ]
+        )
     state = "ok" if all(check["status"] == "ok" for check in checks) else "degraded"
     return {"state": state, "checks": checks}
 
@@ -108,6 +139,7 @@ def classify_backend_failure(stderr: str) -> tuple[str, bool]:
     if any(marker in stderr_lower for marker in (
         "proxy returned status",
         "proxy request failed",
+        "postgres index query failed",
         "failed to read go proxy response",
         "context deadline exceeded",
         "i/o timeout",
@@ -115,6 +147,8 @@ def classify_backend_failure(stderr: str) -> tuple[str, bool]:
         "no such host",
     )):
         return "DATA_SOURCE_UNAVAILABLE", True
+    if "go_index_dsn is required" in stderr_lower or "failed to initialize indexed metadata source" in stderr_lower:
+        return "BACKEND_MISCONFIGURED", False
     return "BACKEND_CRASHED", False
 
 
@@ -150,8 +184,14 @@ def run_resolve_backend(
 
     command = [str(BACKEND_BINARY), "resolve", module_name, module_version, "--format", format_name]
     env = os.environ.copy()
+    env["GO_METADATA_MODE"] = METADATA_MODE
     if PROXY_BASE_URL:
         env["GO_PROXY_BASE_URL"] = PROXY_BASE_URL
+    if INDEX_DSN:
+        env["GO_INDEX_DSN"] = INDEX_DSN
+    if INDEX_TABLE:
+        env["GO_INDEX_TABLE"] = INDEX_TABLE
+    env["GO_INDEX_FALLBACK_TO_ONLINE"] = "true" if INDEX_FALLBACK_TO_ONLINE else "false"
 
     backend_start = time.perf_counter()
     try:
@@ -251,8 +291,14 @@ def run_list_backend(
 
     command = [str(BACKEND_BINARY), "list", module_name, module_version, "--json"]
     env = os.environ.copy()
+    env["GO_METADATA_MODE"] = METADATA_MODE
     if PROXY_BASE_URL:
         env["GO_PROXY_BASE_URL"] = PROXY_BASE_URL
+    if INDEX_DSN:
+        env["GO_INDEX_DSN"] = INDEX_DSN
+    if INDEX_TABLE:
+        env["GO_INDEX_TABLE"] = INDEX_TABLE
+    env["GO_INDEX_FALLBACK_TO_ONLINE"] = "true" if INDEX_FALLBACK_TO_ONLINE else "false"
 
     backend_start = time.perf_counter()
     try:

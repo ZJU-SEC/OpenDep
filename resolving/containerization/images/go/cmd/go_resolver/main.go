@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/package-dependency/go-resolver/internal/output"
@@ -16,6 +17,27 @@ import (
 )
 
 const defaultTimeout = 120 * time.Second
+
+func envBool(name string) bool {
+	value := strings.TrimSpace(os.Getenv(name))
+	return value == "1" || strings.EqualFold(value, "true") || strings.EqualFold(value, "yes") || strings.EqualFold(value, "on")
+}
+
+func envBoolWithDefault(name string, defaultValue bool) bool {
+	value, ok := os.LookupEnv(name)
+	if !ok {
+		return defaultValue
+	}
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return defaultValue
+	}
+	return trimmed == "1" || strings.EqualFold(trimmed, "true") || strings.EqualFold(trimmed, "yes") || strings.EqualFold(trimmed, "on")
+}
+
+func backendConfigError(code string, message string) error {
+	return fmt.Errorf("%s: %s", code, message)
+}
 
 func main() {
 	if len(os.Args) < 2 {
@@ -40,15 +62,45 @@ func printUsage() {
 	fmt.Fprintln(os.Stderr, "  go_resolver list <module> <version> [--json] [--pretty]")
 }
 
-func newGraphResolver(timeout time.Duration) *resolver.resolving {
+func newGraphResolver(timeout time.Duration) (*resolver.Resolver, error) {
 	client := &http.Client{Timeout: timeout}
 	proxyBaseURL := os.Getenv("GO_PROXY_BASE_URL")
-	modSource := source.NewCachingSource(source.NewProxySource(client, proxyBaseURL))
-	return resolver.New(modSource)
+	proxySource := source.NewProxySource(client, proxyBaseURL)
+	metadataMode := strings.ToLower(strings.TrimSpace(os.Getenv("GO_METADATA_MODE")))
+	if metadataMode == "" {
+		metadataMode = "online"
+	}
+
+	var modSource source.ModSource
+	switch metadataMode {
+	case "online":
+		modSource = proxySource
+	case "indexed":
+		indexSource, err := source.NewPostgresSource(
+			context.Background(),
+			os.Getenv("GO_INDEX_DSN"),
+			os.Getenv("GO_INDEX_TABLE"),
+		)
+		if err != nil {
+			return nil, backendConfigError("BACKEND_MISCONFIGURED", fmt.Sprintf("failed to initialize indexed metadata source: %v", err))
+		}
+		if envBoolWithDefault("GO_INDEX_FALLBACK_TO_ONLINE", true) {
+			modSource = source.NewFallbackSource(indexSource, proxySource)
+		} else {
+			modSource = indexSource
+		}
+	default:
+		return nil, backendConfigError("INVALID_ARGUMENT", fmt.Sprintf("unsupported GO_METADATA_MODE: %s", metadataMode))
+	}
+
+	return resolver.New(source.NewCachingSource(modSource)), nil
 }
 
 func resolveModule(target module.Version, timeout time.Duration) (*resolver.ResolveResult, error) {
-	graphResolver := newGraphResolver(timeout)
+	graphResolver, err := newGraphResolver(timeout)
+	if err != nil {
+		return nil, err
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	return graphResolver.Resolve(ctx, target)
