@@ -2,8 +2,8 @@
 git-fetch-with-cli = true
 
 [source.mirror]
-# Dockerfile clones crates.io-index into /app/crates.io-index during image build.
-registry = "file:///app/crates.io-index/"
+# The resolver runtime stages a local-registry layout under the dedicated Cargo runtime root.
+local-registry = "/opt/opendep/cargo-runtime/local-registry"
 
 [source.crates-io]
 replace-with = "mirror"

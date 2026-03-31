@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import sys
 import time
+import hashlib
 from pathlib import Path
 from typing import Any
 
@@ -32,6 +33,13 @@ ADAPTER_VERSION = os.getenv("ADAPTER_VERSION", "container-v1")
 BACKEND_VERSION = os.getenv("BACKEND_VERSION", "native-rust")
 BACKEND_BINARY = Path(os.getenv("CARGO_BACKEND_BINARY", "/usr/local/bin/cargo-resolver"))
 CARGO_HOME = Path(os.getenv("CARGO_HOME", "/cargo-home"))
+RUNTIME_ROOT = Path(os.getenv("CARGO_RUNTIME_ROOT", "/opt/opendep/cargo-runtime"))
+BAKED_LOCAL_REGISTRY_DIR = Path(
+    os.getenv("CARGO_BAKED_LOCAL_REGISTRY_DIR", str(RUNTIME_ROOT / "image-local-registry"))
+)
+SHARED_LOCAL_REGISTRY_DIR = Path(
+    os.getenv("CARGO_SHARED_LOCAL_REGISTRY_DIR", "/cargo-preprocess/local-registry")
+)
 REGISTRY_MODE = os.getenv("CARGO_REGISTRY_MODE", "crates.io")
 METADATA = AdapterMetadata(
     name=ADAPTER_NAME,
@@ -53,6 +61,61 @@ def _to_text(value: Any) -> str:
     return str(value)
 
 
+def _looks_like_local_registry(path: Path) -> bool:
+    return (path / "index" / "config.json").exists()
+
+
+def _registry_config_sha256(path: Path) -> str | None:
+    config_path = path / "index" / "config.json"
+    if not config_path.exists():
+        return None
+    return hashlib.sha256(config_path.read_bytes()).hexdigest()
+
+
+def _remove_path(path: Path) -> None:
+    if path.is_symlink() or path.is_file():
+        path.unlink()
+    elif path.exists():
+        shutil.rmtree(path)
+
+
+def ensure_runtime_registry_binding() -> dict[str, Any]:
+    runtime_registry_link = RUNTIME_ROOT / "local-registry"
+    runtime_registry_link.parent.mkdir(parents=True, exist_ok=True)
+
+    if _looks_like_local_registry(SHARED_LOCAL_REGISTRY_DIR):
+        selected_path = SHARED_LOCAL_REGISTRY_DIR.resolve()
+        selected_source = "shared"
+    elif _looks_like_local_registry(BAKED_LOCAL_REGISTRY_DIR):
+        selected_path = BAKED_LOCAL_REGISTRY_DIR.resolve()
+        selected_source = "baked"
+    else:
+        raise RuntimeError(
+            "no usable Cargo local-registry source was found in either the shared mount or the baked image data"
+        )
+
+    if runtime_registry_link.is_symlink():
+        current_target = Path(os.readlink(runtime_registry_link))
+        if not current_target.is_absolute():
+            current_target = (runtime_registry_link.parent / current_target).resolve()
+        if current_target == selected_path:
+            return {
+                "source": selected_source,
+                "active_path": str(selected_path),
+                "config_sha256": _registry_config_sha256(selected_path),
+            }
+        runtime_registry_link.unlink()
+    elif runtime_registry_link.exists():
+        _remove_path(runtime_registry_link)
+
+    runtime_registry_link.symlink_to(selected_path, target_is_directory=True)
+    return {
+        "source": selected_source,
+        "active_path": str(selected_path),
+        "config_sha256": _registry_config_sha256(selected_path),
+    }
+
+
 def build_capabilities() -> dict[str, Any]:
     return {
         "commands": ["resolve", "health", "capabilities"],
@@ -63,9 +126,19 @@ def build_capabilities() -> dict[str, Any]:
 
 
 def check_health() -> dict[str, Any]:
+    registry_binding_error = None
+    registry_binding: dict[str, Any] | None = None
+    try:
+        registry_binding = ensure_runtime_registry_binding()
+    except RuntimeError as exc:
+        registry_binding_error = str(exc)
+
     python_binary = shutil.which("python3") or shutil.which("python")
     backend_ready = BACKEND_BINARY.exists()
     cargo_home_ready = CARGO_HOME.exists()
+    runtime_root_ready = RUNTIME_ROOT.exists()
+    runtime_config_ready = (RUNTIME_ROOT / ".cargo" / "config.toml").exists()
+    runtime_registry_ready = _looks_like_local_registry(RUNTIME_ROOT / "local-registry")
     checks = [
         {
             "name": "python_runtime",
@@ -81,6 +154,36 @@ def check_health() -> dict[str, Any]:
             "name": "cargo_home",
             "status": "ok" if cargo_home_ready else "error",
             "details": str(CARGO_HOME) if cargo_home_ready else f"missing cargo home: {CARGO_HOME}",
+        },
+        {
+            "name": "runtime_root",
+            "status": "ok" if runtime_root_ready else "error",
+            "details": str(RUNTIME_ROOT) if runtime_root_ready else f"missing runtime root: {RUNTIME_ROOT}",
+        },
+        {
+            "name": "runtime_config",
+            "status": "ok" if runtime_config_ready else "error",
+            "details": str(RUNTIME_ROOT / '.cargo' / 'config.toml') if runtime_config_ready else "missing runtime Cargo config",
+        },
+        {
+            "name": "runtime_registry",
+            "status": "ok" if runtime_registry_ready else "error",
+            "details": str(RUNTIME_ROOT / 'local-registry' / 'index' / 'config.json') if runtime_registry_ready else "missing local-registry index/config.json",
+        },
+        {
+            "name": "runtime_registry_source",
+            "status": "ok" if registry_binding is not None else "error",
+            "details": registry_binding["source"] if registry_binding is not None else registry_binding_error,
+        },
+        {
+            "name": "runtime_registry_active_path",
+            "status": "ok" if registry_binding is not None else "error",
+            "details": registry_binding["active_path"] if registry_binding is not None else registry_binding_error,
+        },
+        {
+            "name": "runtime_registry_config_sha256",
+            "status": "ok" if registry_binding is not None else "error",
+            "details": registry_binding["config_sha256"] if registry_binding is not None else registry_binding_error,
         },
         {
             "name": "registry_mode",
@@ -114,6 +217,16 @@ def run_backend(
             "retryable": False,
         }
 
+    try:
+        registry_binding = ensure_runtime_registry_binding()
+    except RuntimeError as exc:
+        return None, None, {
+            "code": "BACKEND_MISCONFIGURED",
+            "message": str(exc),
+            "backend_error": exc.__class__.__name__,
+            "retryable": False,
+        }
+
     if format_name not in {"graph", "full"}:
         return None, None, {
             "code": "INVALID_ARGUMENT",
@@ -129,7 +242,7 @@ def run_backend(
             command,
             capture_output=True,
             text=True,
-            cwd=PROJECT_ROOT,
+            cwd=RUNTIME_ROOT,
             timeout=timeout_ms / 1000,
             check=False,
         )
@@ -157,6 +270,8 @@ def run_backend(
         "stderr": completed.stderr,
         "exit_code": completed.returncode,
         "backend_duration_ms": int((time.perf_counter() - backend_start) * 1000),
+        "runtime_registry_source": registry_binding["source"],
+        "runtime_registry_active_path": registry_binding["active_path"],
     }
     if completed.returncode != 0:
         backend_error = completed.stderr.strip() or None

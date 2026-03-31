@@ -1,0 +1,14 @@
+services:
+  cargo-preprocess:
+    build:
+      context: ..
+      dockerfile: cargo/Dockerfile
+    image: opendep-cargo-preprocess:latest
+    working_dir: /workspace
+    environment:
+      PYTHONPATH: /workspace
+      PYTHONUNBUFFERED: "1"
+      CARGO_INDEX_URL: ${CARGO_INDEX_URL:-https://github.com/rust-lang/crates.io-index.git}
+      CARGO_PREPROCESS_DATA_ROOT: ${CARGO_PREPROCESS_DATA_ROOT:-/workspace/pre-process/cargo/data}
+    volumes:
+      - ../..:/workspace
