@@ -44,6 +44,11 @@ services:
       ADAPTER_VERSION: container-v1
       BACKEND_VERSION: legacy-cpp
       NPM_BACKEND_BINARY: /usr/local/bin/npm-resolver
+      NPM_METADATA_MODE: ${NPM_METADATA_MODE:-online}
+      NPM_REGISTRY_BASE_URL: ${NPM_REGISTRY_BASE_URL:-https://registry.npmmirror.com}
+      NPM_INDEX_DSN: ${NPM_INDEX_DSN:-}
+      NPM_INDEX_TABLE: ${NPM_INDEX_TABLE:-npm_metadata}
+      NPM_INDEX_FALLBACK_TO_ONLINE: ${NPM_INDEX_FALLBACK_TO_ONLINE:-true}
       NPM_PLATFORM_OS: linux
       NPM_PLATFORM_CPU: x64
       NPM_PLATFORM_LIBC: glibc

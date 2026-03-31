@@ -5,6 +5,7 @@ RUN apt-get update && \
         cmake \
         libcurl4-openssl-dev \
         python3 \
+        python3-psycopg2 \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

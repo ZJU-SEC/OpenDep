@@ -50,7 +50,8 @@ It also supports raw stdout/stderr preservation and timeout/error mapping consis
 ### `npm_adapter.py`
 
 This adapter wraps the native npm resolver binary and converts its backend-native output into the normalized graph response model.
-It also exposes container health checks for the Python runtime and the npm backend binary.
+It now supports both `online` and `indexed` metadata modes.
+In `indexed` mode it starts a local HTTP shim backed by PostgreSQL so the native C++ backend can keep consuming raw packuments over HTTP without learning direct database access.
 
 ### `maven_adapter.py`
 

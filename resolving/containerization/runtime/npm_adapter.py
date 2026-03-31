@@ -23,12 +23,20 @@ from resolving.containerization.runtime.adapter_runtime import (
     load_request_from_stdin,
     success_response,
 )
+from resolving.containerization.runtime.npm_index import DEFAULT_REGISTRY_BASE_URL, serve_packument_shim
 
 
 ADAPTER_NAME = os.getenv("RESOLVER_NAME", "npm-dependency-resolver")
 ADAPTER_VERSION = os.getenv("ADAPTER_VERSION", "container-v1")
 BACKEND_VERSION = os.getenv("BACKEND_VERSION", "legacy-cpp")
 BACKEND_BINARY = Path(os.getenv("NPM_BACKEND_BINARY", "/usr/local/bin/npm-resolver"))
+METADATA_MODE = (os.getenv("NPM_METADATA_MODE", "online").strip() or "online").lower()
+REGISTRY_BASE_URL = (os.getenv("NPM_REGISTRY_BASE_URL", DEFAULT_REGISTRY_BASE_URL).strip() or DEFAULT_REGISTRY_BASE_URL).rstrip("/")
+INDEX_DSN = os.getenv("NPM_INDEX_DSN", "").strip()
+INDEX_TABLE = os.getenv("NPM_INDEX_TABLE", "npm_metadata").strip() or "npm_metadata"
+INDEX_FALLBACK_TO_ONLINE = (
+    os.getenv("NPM_INDEX_FALLBACK_TO_ONLINE", "true").strip().lower() in {"1", "true", "yes", "on"}
+)
 PLATFORM = {
     "os": os.getenv("NPM_PLATFORM_OS", "linux"),
     "cpu": os.getenv("NPM_PLATFORM_CPU", "x64"),
@@ -275,7 +283,8 @@ def build_capabilities() -> dict[str, Any]:
     return {
         "commands": ["resolve", "health", "capabilities"],
         "formats": ["graph"],
-        "features": ["raw", "peer-dependencies", "directory-tree"],
+        "features": ["raw", "peer-dependencies", "directory-tree", "indexed-postgres"],
+        "metadata_modes": ["online", "indexed"],
         "platform": False,
     }
 
@@ -289,9 +298,9 @@ def check_health() -> dict[str, Any]:
             "details": str(BACKEND_BINARY) if backend_ready else f"missing backend binary: {BACKEND_BINARY}",
         },
         {
-            "name": "registry_source",
-            "status": "ok",
-            "details": "compiled configuration targets the official npm registry",
+            "name": "npm_metadata_mode",
+            "status": "ok" if METADATA_MODE in {"online", "indexed"} else "error",
+            "details": METADATA_MODE,
         },
         {
             "name": "platform_profile",
@@ -299,6 +308,34 @@ def check_health() -> dict[str, Any]:
             "details": f"os={PLATFORM['os']} cpu={PLATFORM['cpu']} libc={PLATFORM['libc']}",
         },
     ]
+    if METADATA_MODE == "online" or INDEX_FALLBACK_TO_ONLINE:
+        checks.append(
+            {
+                "name": "npm_registry_base_url",
+                "status": "ok" if REGISTRY_BASE_URL else "error",
+                "details": REGISTRY_BASE_URL or "NPM_REGISTRY_BASE_URL is empty",
+            }
+        )
+    if METADATA_MODE == "indexed":
+        checks.extend(
+            [
+                {
+                    "name": "npm_index_dsn",
+                    "status": "ok" if INDEX_DSN else "error",
+                    "details": "configured" if INDEX_DSN else "NPM_INDEX_DSN is not set",
+                },
+                {
+                    "name": "npm_index_table",
+                    "status": "ok" if INDEX_TABLE else "error",
+                    "details": INDEX_TABLE or "NPM_INDEX_TABLE is empty",
+                },
+                {
+                    "name": "npm_index_fallback_to_online",
+                    "status": "ok",
+                    "details": str(INDEX_FALLBACK_TO_ONLINE).lower(),
+                },
+            ]
+        )
     state = "ok" if all(check["status"] == "ok" for check in checks) else "degraded"
     return {"state": state, "checks": checks}
 
@@ -450,24 +487,17 @@ def _map_backend_state(package_version: str | None, result: dict[str, Any], raw:
     }
 
 
-def run_backend(package_name: str, package_version: str | None, timeout_ms: int) -> tuple[dict[str, Any] | None, dict[str, Any] | None, dict[str, Any] | None]:
-    if not package_version:
-        return None, None, {
-            "code": "INVALID_ARGUMENT",
-            "message": "package.version is required for npm resolve",
-            "backend_error": None,
-            "retryable": False,
-        }
-
-    if not BACKEND_BINARY.exists():
-        return None, None, {
-            "code": "BACKEND_MISCONFIGURED",
-            "message": f"npm backend binary was not found at {BACKEND_BINARY}",
-            "backend_error": None,
-            "retryable": False,
-        }
-
+def _run_backend_process(
+    package_name: str,
+    package_version: str,
+    timeout_ms: int,
+    *,
+    registry_base_url: str,
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None, dict[str, Any] | None]:
     command = [str(BACKEND_BINARY), package_name, package_version]
+    env = os.environ.copy()
+    env["NPM_REGISTRY_BASE_URL"] = registry_base_url
+
     backend_start = time.perf_counter()
     try:
         completed = subprocess.run(
@@ -475,6 +505,7 @@ def run_backend(package_name: str, package_version: str | None, timeout_ms: int)
             capture_output=True,
             text=True,
             cwd=PROJECT_ROOT,
+            env=env,
             timeout=timeout_ms / 1000,
             check=False,
         )
@@ -502,6 +533,8 @@ def run_backend(package_name: str, package_version: str | None, timeout_ms: int)
         "stdout": completed.stdout,
         "stderr": completed.stderr,
         "exit_code": completed.returncode,
+        "metadata_mode": METADATA_MODE,
+        "registry_base_url": registry_base_url,
     }
     if completed.returncode != 0:
         backend_error = completed.stderr.strip() or None
@@ -543,6 +576,74 @@ def run_backend(package_name: str, package_version: str | None, timeout_ms: int)
         }
 
     return normalized_result, raw, None
+
+
+def run_backend(package_name: str, package_version: str | None, timeout_ms: int) -> tuple[dict[str, Any] | None, dict[str, Any] | None, dict[str, Any] | None]:
+    if not package_version:
+        return None, None, {
+            "code": "INVALID_ARGUMENT",
+            "message": "package.version is required for npm resolve",
+            "backend_error": None,
+            "retryable": False,
+        }
+
+    if not BACKEND_BINARY.exists():
+        return None, None, {
+            "code": "BACKEND_MISCONFIGURED",
+            "message": f"npm backend binary was not found at {BACKEND_BINARY}",
+            "backend_error": None,
+            "retryable": False,
+        }
+
+    if METADATA_MODE == "indexed":
+        if not INDEX_DSN:
+            return None, None, {
+                "code": "BACKEND_MISCONFIGURED",
+                "message": "NPM_INDEX_DSN is required when NPM_METADATA_MODE=indexed",
+                "backend_error": None,
+                "retryable": False,
+            }
+
+        try:
+            with serve_packument_shim(
+                dsn=INDEX_DSN,
+                table_name=INDEX_TABLE,
+                upstream_base_url=REGISTRY_BASE_URL,
+                fallback_to_online=INDEX_FALLBACK_TO_ONLINE,
+            ) as shim:
+                result, raw, error = _run_backend_process(
+                    package_name,
+                    package_version,
+                    timeout_ms,
+                    registry_base_url=shim.base_url,
+                )
+                if raw is not None:
+                    raw["index_table"] = INDEX_TABLE
+                    raw["index_fallback_to_online"] = INDEX_FALLBACK_TO_ONLINE
+                    raw["shim_base_url"] = shim.base_url
+                    raw["upstream_registry_base_url"] = REGISTRY_BASE_URL
+                return result, raw, error
+        except ValueError as exc:
+            return None, None, {
+                "code": "BACKEND_MISCONFIGURED",
+                "message": str(exc),
+                "backend_error": exc.__class__.__name__,
+                "retryable": False,
+            }
+        except Exception as exc:
+            return None, None, {
+                "code": "DATA_SOURCE_UNAVAILABLE",
+                "message": f"failed to initialize npm indexed metadata source: {exc}",
+                "backend_error": exc.__class__.__name__,
+                "retryable": True,
+            }
+
+    return _run_backend_process(
+        package_name,
+        package_version,
+        timeout_ms,
+        registry_base_url=REGISTRY_BASE_URL,
+    )
 
 
 def main() -> int:

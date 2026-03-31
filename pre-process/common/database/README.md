@@ -13,7 +13,7 @@ The intended deployment model is:
 ## Current table plan
 
 - `pip` -> `pip_metadata`
-- `npm` -> reserved for future table
+- `npm` -> `npm_metadata`, `npm_sync_state`, `npm_tombstones`
 - `maven` -> reserved for future table
 - `cargo` -> reserved for future table
 - `go` -> `go_metadata`
@@ -28,6 +28,9 @@ The intended deployment model is:
 - `yoyo.ini` - yoyo configuration pointing at the shared migration directory
 - `initdb/00-pip-metadata.sql` - pip migration file
 - `initdb/10-go-metadata.sql` - Go migration file
+- `initdb/20-npm-metadata.sql` - npm migration file
+- `initdb/21-npm-sync-state.sql` - npm `_changes` checkpoint migration file
+- `initdb/22-npm-tombstones.sql` - npm delete-tombstone migration file
 
 ## Start the database
 
@@ -114,9 +117,22 @@ The Go preprocessing and future indexed resolver paths should target:
 - table: `go_metadata`
 - schema file: `pre-process/common/database/initdb/10-go-metadata.sql`
 
+## npm integration
+
+The npm preprocessing and future indexed resolver paths should target:
+
+- database: `opendep_preprocess`
+- table: `npm_metadata`
+- schema file: `pre-process/common/database/initdb/20-npm-metadata.sql`
+- checkpoint table: `npm_sync_state`
+- checkpoint schema file: `pre-process/common/database/initdb/21-npm-sync-state.sql`
+- tombstone table: `npm_tombstones`
+- tombstone schema file: `pre-process/common/database/initdb/22-npm-tombstones.sql`
+
 ## Notes
 
 - The shared DB stack now uses `yoyo-migrations`, a Python migration framework, instead of relying on PostgreSQL's one-time `/docker-entrypoint-initdb.d` behavior.
 - Yoyo tracks applied migrations in database tables such as `_yoyo_migration`, `_yoyo_log`, `_yoyo_version`, and `yoyo_lock`.
 - After a migration file has been applied, do not edit it in place. Create a new higher-ordered SQL migration file for later schema changes.
-- The current pip and Go tables are defined in separate ecosystem-specific files under `pre-process/common/database/initdb/`.
+- The current pip, Go, and npm tables are defined in separate ecosystem-specific files under `pre-process/common/database/initdb/`.
+- For npm, `npm_metadata` stores raw packuments, `npm_sync_state` stores `_changes` checkpoints, and `npm_tombstones` stores active package-level delete markers.

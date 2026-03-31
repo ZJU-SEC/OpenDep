@@ -38,4 +38,6 @@ docker run --rm npm-resolver:latest is-odd 3.0.1
 ## Notes
 
 - The native program prints backend-native progress and result sections to stdout.
-- Registry-related defaults can be adjusted in `resolving/containerization/images/npm/src/config.hpp` before rebuilding.
+- The native backend now reads `NPM_REGISTRY_BASE_URL` at runtime, so the registry source no longer has to be compiled into the image.
+- Scoped package names are URL-escaped before fetch, so requests such as `@types/node` work in both online mode and adapter-managed indexed mode.
+- In indexed mode, the Python adapter starts a local HTTP shim backed by PostgreSQL and points the native binary at that shim through `NPM_REGISTRY_BASE_URL`.

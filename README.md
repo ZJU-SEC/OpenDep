@@ -110,6 +110,17 @@ python3 main.py resolve --ecosystem go --name github.com/rogpeppe/godef --versio
 
 The Go indexed path now falls back to the online proxy by default when a module row is missing from PostgreSQL.
 
+For npm, you can now switch between the online resolver path and the database-backed indexed path directly from `main.py`:
+
+```bash
+python3 main.py resolve --ecosystem npm --name left-pad --version 1.3.0 --format graph --npm-mode online
+
+python3 main.py resolve --ecosystem npm --name left-pad --version 1.3.0 --format graph --npm-mode indexed --npm-index-dsn 'postgresql://opendep:opendep@host.docker.internal:55432/opendep_preprocess' --npm-index-table npm_metadata
+```
+
+The npm indexed path keeps the native C++ resolver logic and serves packuments from PostgreSQL through an adapter-managed local HTTP shim.
+When indexed data is missing, it falls back to the online registry by default.
+
 ### Run the Go `list` command
 
 The `list` command is currently implemented for the Go resolver path.

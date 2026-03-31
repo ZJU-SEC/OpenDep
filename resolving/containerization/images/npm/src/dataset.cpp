@@ -1,17 +1,69 @@
 #include "dataset.hpp"
+#include "exceptions.hpp"
 #include "semver.hpp"
 #include <curl/curl.h>
 #include <fmt/core.h>
+#include <cctype>
+#include <cstdlib>
+#include <stdexcept>
 
 using namespace std;
 using namespace nlohmann;
 using namespace sw::redis;
+
+namespace {
 
 static size_t WriteCallback(void *contents, size_t size, size_t nmemb,
                             void *userp) {
   ((std::string *)userp)->append((char *)contents, size * nmemb);
   return size * nmemb;
 }
+
+string urlEncodePackageName(const string &value) {
+  static const char *kHex = "0123456789ABCDEF";
+  string encoded;
+  encoded.reserve(value.size() * 3);
+
+  for (unsigned char ch : value) {
+    if (std::isalnum(ch) || ch == '-' || ch == '_' || ch == '.' ||
+        ch == '~' || ch == '@') {
+      encoded.push_back(static_cast<char>(ch));
+      continue;
+    }
+
+    encoded.push_back('%');
+    encoded.push_back(kHex[(ch >> 4) & 0x0F]);
+    encoded.push_back(kHex[ch & 0x0F]);
+  }
+
+  return encoded;
+}
+
+string defaultRegistryBaseUrl() {
+#ifdef USE_LOCAL
+  return "http://127.0.0.1:8080";
+#else
+  return "https://registry.npmmirror.com";
+#endif
+}
+
+string resolveRegistryBaseUrl() {
+  const char *configured = std::getenv("NPM_REGISTRY_BASE_URL");
+  if (configured && configured[0] != '\0') {
+    return configured;
+  }
+  return defaultRegistryBaseUrl();
+}
+
+string buildPackumentUrl(const string &name) {
+  string baseUrl = resolveRegistryBaseUrl();
+  while (!baseUrl.empty() && baseUrl.back() == '/') {
+    baseUrl.pop_back();
+  }
+  return baseUrl + "/" + urlEncodePackageName(name);
+}
+
+} // namespace
 
 const DataSheet *DataSet::queryVersion(const string &name,
                                        const string &rangeSpec) {
@@ -24,31 +76,43 @@ const DataSheet *DataSet::queryVersion(const string &name,
   CURL *easyhandle = curl_easy_init();
   if (!easyhandle) {
     fmt::print(stderr, "{} {}: cannot init curl\n", name, rangeSpec);
-    return nullptr;
+    throw npmErrorException();
   }
   string readBuffer;
+  string requestUrl = buildPackumentUrl(name);
   curl_easy_setopt(easyhandle, CURLOPT_WRITEFUNCTION, WriteCallback);
   curl_easy_setopt(easyhandle, CURLOPT_WRITEDATA, &readBuffer);
-#ifdef USE_OFFICIAL
-  curl_easy_setopt(easyhandle, CURLOPT_URL,
-                //  ("https://registry.npmjs.org/" + name).c_str());
-                   ("https://registry.npmmirror.com/" + name).c_str());
-#elif defined(USE_LOCAL)
-  curl_easy_setopt(easyhandle, CURLOPT_URL,
-                   ("http://127.0.0.1:8080/" + name).c_str());
-#endif
+  curl_easy_setopt(easyhandle, CURLOPT_URL, requestUrl.c_str());
 
   CURLcode res = curl_easy_perform(easyhandle);
+  long httpCode = 0;
+  curl_easy_getinfo(easyhandle, CURLINFO_RESPONSE_CODE, &httpCode);
 
   curl_easy_cleanup(easyhandle);
 
   if (res) {
     fmt::print(stderr, "{} {}: libcurl error codes: {}\n", name, rangeSpec,
               static_cast<int>(res));
-    return nullptr;
+    throw npmErrorException();
   }
 
-  auto j = json::parse(readBuffer);
+  if (httpCode == 404 || httpCode == 410) {
+    return nullptr;
+  }
+  if (httpCode >= 400) {
+    fmt::print(stderr, "{} {}: npm registry returned status {}\n", name,
+               rangeSpec, httpCode);
+    throw npmErrorException();
+  }
+
+  json j;
+  try {
+    j = json::parse(readBuffer);
+  } catch (const json::parse_error &) {
+    fmt::print(stderr, "{} {}: npm registry returned invalid JSON\n", name,
+               rangeSpec);
+    throw npmErrorException();
+  }
 
   auto &versions = j["versions"];
   if (!versions.size()) {
