@@ -2,8 +2,8 @@
 git-fetch-with-cli = true
 
 [source.mirror]
-# The resolver runtime stages a local-registry layout under the dedicated Cargo runtime root.
-local-registry = "/opt/opendep/cargo-runtime/local-registry"
+# The resolver runtime consumes the preprocess-managed shared Docker volume.
+local-registry = "/cargo-preprocess-data/local-registry"
 
 [source.crates-io]
 replace-with = "mirror"

@@ -11,12 +11,14 @@ use std::path::{Path, PathBuf};
 
 use anyhow::Result;
 
+use crate::registry_index;
+
 pub fn resolve_with_all_features(name: &str, version_num: &str) -> Result<Resolve> {
     let current_dir = env::current_dir()?;
     let workspace_dir = workspace_dir(&current_dir);
     ensure_workspace_layout(&workspace_dir)?;
     let manifest_path = workspace_dir.join("Cargo.toml");
-    let features = collect_enabled_features(name, version_num, &current_dir, &manifest_path)?;
+    let features = registry_index::collect_root_feature_names(name, version_num)?;
     run_resolve(name, version_num, &features, &current_dir, &manifest_path)
 }
 
@@ -38,24 +40,6 @@ edition = "2021"
     }
     file.push_str("]}");
     file
-}
-
-fn collect_enabled_features(
-    name: &str,
-    version_num: &str,
-    current_dir: &Path,
-    manifest_path: &Path,
-) -> Result<Vec<String>> {
-    let resolve = run_resolve(name, version_num, &[], current_dir, manifest_path)?;
-    let mut features = Vec::new();
-
-    if let Ok(resolved_pkg) = resolve.query(&format!("{}:{}", name, version_num)) {
-        for feature in resolve.summary(resolved_pkg).features().keys() {
-            features.push(feature.to_string());
-        }
-    }
-
-    Ok(features)
 }
 
 fn ensure_workspace_layout(workspace_dir: &Path) -> Result<()> {

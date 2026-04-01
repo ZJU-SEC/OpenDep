@@ -87,7 +87,7 @@ services:
     working_dir: /app
     volumes:
       - cargo_home:/cargo-home
-      - ${CARGO_PREPROCESS_LOCAL_REGISTRY_HOST_PATH:-../../pre-process/cargo/data/local-registry}:/cargo-preprocess/local-registry:ro
+      - cargo_preprocess_data:/cargo-preprocess-data:ro
     stdin_open: true
     tty: false
     init: true
@@ -99,8 +99,7 @@ services:
       CARGO_BACKEND_BINARY: /usr/local/bin/cargo-resolver
       CARGO_HOME: /cargo-home
       CARGO_RUNTIME_ROOT: /opt/opendep/cargo-runtime
-      CARGO_BAKED_LOCAL_REGISTRY_DIR: /opt/opendep/cargo-runtime/image-local-registry
-      CARGO_SHARED_LOCAL_REGISTRY_DIR: /cargo-preprocess/local-registry
+      CARGO_LOCAL_REGISTRY_DIR: /cargo-preprocess-data/local-registry
       CARGO_REGISTRY_MODE: local-registry
     entrypoint: ["python3", "resolving/containerization/runtime/cargo_adapter.py"]
 
@@ -146,6 +145,8 @@ services:
 volumes:
   cargo_home:
     name: resolver-cargo-home-cache
+  cargo_preprocess_data:
+    name: ${CARGO_PREPROCESS_DATA_VOLUME_NAME:-opendep-cargo-preprocess-data}
   maven_m2:
     name: resolver-maven-m2-cache
   pip_cache:

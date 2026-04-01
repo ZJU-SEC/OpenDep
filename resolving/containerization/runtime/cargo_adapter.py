@@ -34,12 +34,7 @@ BACKEND_VERSION = os.getenv("BACKEND_VERSION", "native-rust")
 BACKEND_BINARY = Path(os.getenv("CARGO_BACKEND_BINARY", "/usr/local/bin/cargo-resolver"))
 CARGO_HOME = Path(os.getenv("CARGO_HOME", "/cargo-home"))
 RUNTIME_ROOT = Path(os.getenv("CARGO_RUNTIME_ROOT", "/opt/opendep/cargo-runtime"))
-BAKED_LOCAL_REGISTRY_DIR = Path(
-    os.getenv("CARGO_BAKED_LOCAL_REGISTRY_DIR", str(RUNTIME_ROOT / "image-local-registry"))
-)
-SHARED_LOCAL_REGISTRY_DIR = Path(
-    os.getenv("CARGO_SHARED_LOCAL_REGISTRY_DIR", "/cargo-preprocess/local-registry")
-)
+LOCAL_REGISTRY_DIR = Path(os.getenv("CARGO_LOCAL_REGISTRY_DIR", str(RUNTIME_ROOT / "local-registry")))
 REGISTRY_MODE = os.getenv("CARGO_REGISTRY_MODE", "crates.io")
 METADATA = AdapterMetadata(
     name=ADAPTER_NAME,
@@ -72,45 +67,23 @@ def _registry_config_sha256(path: Path) -> str | None:
     return hashlib.sha256(config_path.read_bytes()).hexdigest()
 
 
-def _remove_path(path: Path) -> None:
-    if path.is_symlink() or path.is_file():
-        path.unlink()
-    elif path.exists():
-        shutil.rmtree(path)
+def _registry_candidate_details(path: Path) -> str:
+    if _looks_like_local_registry(path):
+        return f"available: {path.resolve()}"
+    return f"missing: {path / 'index' / 'config.json'}"
 
 
-def ensure_runtime_registry_binding() -> dict[str, Any]:
-    runtime_registry_link = RUNTIME_ROOT / "local-registry"
-    runtime_registry_link.parent.mkdir(parents=True, exist_ok=True)
-
-    if _looks_like_local_registry(SHARED_LOCAL_REGISTRY_DIR):
-        selected_path = SHARED_LOCAL_REGISTRY_DIR.resolve()
-        selected_source = "shared"
-    elif _looks_like_local_registry(BAKED_LOCAL_REGISTRY_DIR):
-        selected_path = BAKED_LOCAL_REGISTRY_DIR.resolve()
-        selected_source = "baked"
-    else:
+def ensure_runtime_registry_ready() -> dict[str, Any]:
+    if not _looks_like_local_registry(LOCAL_REGISTRY_DIR):
         raise RuntimeError(
-            "no usable Cargo local-registry source was found in either the shared mount or the baked image data"
+            "no preprocess-managed Cargo local-registry was found at "
+            f"{LOCAL_REGISTRY_DIR / 'index' / 'config.json'}; "
+            "prepare pre-process/cargo data and mount it into the resolver container"
         )
 
-    if runtime_registry_link.is_symlink():
-        current_target = Path(os.readlink(runtime_registry_link))
-        if not current_target.is_absolute():
-            current_target = (runtime_registry_link.parent / current_target).resolve()
-        if current_target == selected_path:
-            return {
-                "source": selected_source,
-                "active_path": str(selected_path),
-                "config_sha256": _registry_config_sha256(selected_path),
-            }
-        runtime_registry_link.unlink()
-    elif runtime_registry_link.exists():
-        _remove_path(runtime_registry_link)
-
-    runtime_registry_link.symlink_to(selected_path, target_is_directory=True)
+    selected_path = LOCAL_REGISTRY_DIR.resolve()
     return {
-        "source": selected_source,
+        "source": "preprocess-shared",
         "active_path": str(selected_path),
         "config_sha256": _registry_config_sha256(selected_path),
     }
@@ -129,7 +102,7 @@ def check_health() -> dict[str, Any]:
     registry_binding_error = None
     registry_binding: dict[str, Any] | None = None
     try:
-        registry_binding = ensure_runtime_registry_binding()
+        registry_binding = ensure_runtime_registry_ready()
     except RuntimeError as exc:
         registry_binding_error = str(exc)
 
@@ -138,7 +111,7 @@ def check_health() -> dict[str, Any]:
     cargo_home_ready = CARGO_HOME.exists()
     runtime_root_ready = RUNTIME_ROOT.exists()
     runtime_config_ready = (RUNTIME_ROOT / ".cargo" / "config.toml").exists()
-    runtime_registry_ready = _looks_like_local_registry(RUNTIME_ROOT / "local-registry")
+    runtime_registry_ready = _looks_like_local_registry(LOCAL_REGISTRY_DIR)
     checks = [
         {
             "name": "python_runtime",
@@ -168,7 +141,12 @@ def check_health() -> dict[str, Any]:
         {
             "name": "runtime_registry",
             "status": "ok" if runtime_registry_ready else "error",
-            "details": str(RUNTIME_ROOT / 'local-registry' / 'index' / 'config.json') if runtime_registry_ready else "missing local-registry index/config.json",
+            "details": str(LOCAL_REGISTRY_DIR / 'index' / 'config.json') if runtime_registry_ready else "missing local-registry index/config.json",
+        },
+        {
+            "name": "preprocess_registry_mount",
+            "status": "ok" if runtime_registry_ready else "error",
+            "details": _registry_candidate_details(LOCAL_REGISTRY_DIR),
         },
         {
             "name": "runtime_registry_source",
@@ -218,7 +196,7 @@ def run_backend(
         }
 
     try:
-        registry_binding = ensure_runtime_registry_binding()
+        registry_binding = ensure_runtime_registry_ready()
     except RuntimeError as exc:
         return None, None, {
             "code": "BACKEND_MISCONFIGURED",
@@ -272,6 +250,7 @@ def run_backend(
         "backend_duration_ms": int((time.perf_counter() - backend_start) * 1000),
         "runtime_registry_source": registry_binding["source"],
         "runtime_registry_active_path": registry_binding["active_path"],
+        "runtime_registry_config_sha256": registry_binding["config_sha256"],
     }
     if completed.returncode != 0:
         backend_error = completed.stderr.strip() or None

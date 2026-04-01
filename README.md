@@ -151,6 +151,7 @@ python3 main.py resolve --ecosystem pip|go|npm|maven|cargo --name {package_ident
 - The first run can be significantly slower because backend images, indexes, metadata, and package caches may need to be populated.
 - Maven uses a persistent Docker volume for `.m2` caching.
 - Cargo uses a persistent Docker volume for `CARGO_HOME` caching.
+- Cargo requires the shared preprocess-managed `local-registry` volume prepared by `pre-process/cargo`.
 - pip uses a persistent Docker volume for resolver metadata and artifact caching in `live` mode.
 - Backend behavior and supported commands are advertised through `capabilities`.
 - The resolver registry files currently use JSON syntax while keeping the historical `.yaml` suffix.

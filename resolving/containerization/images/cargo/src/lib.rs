@@ -5,6 +5,7 @@ use anyhow::Result;
 pub mod batch;
 pub mod graph;
 pub mod model;
+mod registry_index;
 pub mod resolver;
 pub mod util;
 

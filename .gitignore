@@ -1,4 +1,5 @@
-。legacy/
+.DS_Store
+.legacy/
 __pycache__/
 *.pyc
 
@@ -9,8 +10,3 @@ resolving/containerization/images/cargo/target/
 resolving/containerization/images/cargo/job_once/
 
 dep_*
-
-.legacy/
-
-crates.io-index/
-pre-process/cargo/data/

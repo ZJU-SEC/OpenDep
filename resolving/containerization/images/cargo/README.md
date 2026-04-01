@@ -24,63 +24,93 @@ Key files and directories:
 Run from the repository root:
 
 ```bash
-bash pre-process/cargo/refresh_local_snapshot.sh
 docker build -f resolving/containerization/images/cargo/Dockerfile -t cargo-resolver:latest .
 ```
+
+The current Docker build assumes repository-root context.
+It compiles the native resolver binary and stages the runtime Cargo config under `/opt/opendep/cargo-runtime/.cargo/config.toml`.
+The shared preprocess-managed data under `pre-process/cargo/data/` and the legacy local path `resolving/containerization/images/cargo/crates.io-index/` are excluded from the Docker build context by the repository-root `.dockerignore`.
 
 ## Run the image
 
 The image entrypoint is `/usr/local/bin/cargo-resolver`.
-The shared Cargo cache is typically mounted to `/cargo-home`.
+The runtime working directory is `/opt/opendep/cargo-runtime`, and the shared Cargo cache is typically mounted to `/cargo-home`.
 
 Example native run:
 
 ```bash
-docker run --rm -v resolver-cargo-home-cache:/cargo-home cargo-resolver:latest resolve rand 0.8.5 --format full --pretty
+docker run --rm \
+  -v opendep-cargo-preprocess-data:/cargo-preprocess-data:ro \
+  -v resolver-cargo-home-cache:/cargo-home \
+  cargo-resolver:latest \
+  resolve rand 0.8.5 --format full --pretty
 ```
+
+## Active and legacy entrypoints
+
+The active resolver path for containerized request handling is:
+
+- [cargo_resolver.rs](/Users/xingyu/project/Paper/OpenDep/resolving/containerization/images/cargo/src/bin/cargo_resolver.rs)
+- [resolver.rs](/Users/xingyu/project/Paper/OpenDep/resolving/containerization/images/cargo/src/resolver.rs)
+- [registry_index.rs](/Users/xingyu/project/Paper/OpenDep/resolving/containerization/images/cargo/src/registry_index.rs)
+
+The crate default run target now points at `cargo_resolver`, so a plain `cargo run` matches the active CLI path.
+
+The following code still exists in the Cargo image source tree but is not on the active `resolver-cargo` request path:
+
+- [main.rs](/Users/xingyu/project/Paper/OpenDep/resolving/containerization/images/cargo/src/main.rs)
+- [get_deps.rs](/Users/xingyu/project/Paper/OpenDep/resolving/containerization/images/cargo/src/bin/get_deps.rs)
+- [count_deps.rs](/Users/xingyu/project/Paper/OpenDep/resolving/containerization/images/cargo/src/bin/count_deps.rs)
+- [complete_deps.rs](/Users/xingyu/project/Paper/OpenDep/resolving/containerization/images/cargo/src/bin/complete_deps.rs)
+- [batch/](/Users/xingyu/project/Paper/OpenDep/resolving/containerization/images/cargo/src/batch)
 
 ## Shared local-registry mode
 
 The active compose-based resolver path now supports a preprocess-managed shared Cargo `local-registry`.
 The intended operator flow is:
 
-1. Prepare `pre-process/cargo/data/local-registry/` through the Cargo preprocess workspace.
-2. Build the resolver image once so it still contains a baked fallback snapshot.
-3. Run `resolver-cargo` through [docker-compose.yml](/Users/xingyu/project/Paper/OpenDep/resolving/containerization/docker-compose.yml), which mounts the shared local-registry into `/cargo-preprocess/local-registry`.
-4. Let [cargo_adapter.py](/Users/xingyu/project/Paper/OpenDep/resolving/containerization/runtime/cargo_adapter.py) repoint `/opt/opendep/cargo-runtime/local-registry` to the shared mount when it is present.
+1. Prepare the shared Docker volume `opendep-cargo-preprocess-data` through the Cargo preprocess workspace.
+2. Build the resolver image.
+3. Run `resolver-cargo` through [docker-compose.yml](/Users/xingyu/project/Paper/OpenDep/resolving/containerization/docker-compose.yml), which mounts that same volume at `/cargo-preprocess-data`.
+4. Let [cargo_adapter.py](/Users/xingyu/project/Paper/OpenDep/resolving/containerization/runtime/cargo_adapter.py) validate that the preprocess-managed mount is present before serving requests.
 
 Example preprocess bootstrap:
 
 ```bash
-python3 pre-process/cargo/build.py clone --pretty
-python3 pre-process/cargo/build.py prepare-local-registry --force --pretty
+docker compose -f pre-process/cargo/docker-compose.yml run --rm cargo-preprocess clone --pretty
+docker compose -f pre-process/cargo/docker-compose.yml run --rm cargo-preprocess prepare-local-registry --force --pretty
 docker compose -f resolving/containerization/docker-compose.yml build resolver-cargo
 python3 main.py health --ecosystem cargo
 ```
 
 When the shared mount is available, health should report:
 
-- `runtime_registry_source = shared`
-- `runtime_registry_active_path = /cargo-preprocess/local-registry`
+- `runtime_registry_source = preprocess-shared`
+- `runtime_registry_active_path = /cargo-preprocess-data/local-registry`
 
 Later preprocess refreshes do not require rebuilding the resolver image:
 
 ```bash
-python3 pre-process/cargo/build.py update --pretty
-python3 pre-process/cargo/build.py prepare-local-registry --force --pretty
+docker compose -f pre-process/cargo/docker-compose.yml run --rm cargo-preprocess update --pretty
+docker compose -f pre-process/cargo/docker-compose.yml run --rm cargo-preprocess prepare-local-registry --force --pretty
 python3 main.py resolve --ecosystem cargo --name tokio --version 1.38.0 --format graph --return-raw
 ```
 
-If the shared mount is absent or incomplete, the adapter falls back automatically to the baked image registry snapshot.
+If the shared mount is absent or incomplete, the adapter now fails fast and reports a misconfiguration instead of silently falling back to image-baked data.
+
+Health output now makes the source selection more explicit by reporting:
+
+- `preprocess_registry_mount`
+- `runtime_registry_source`
+- `runtime_registry_active_path`
+- `runtime_registry_config_sha256`
 
 ## Notes
 
-- The current refactor-stage Dockerfile copies a repository-local `crates.io-index` checkout into the image, then stages it as a baked `local-registry` fallback under `/opt/opendep/cargo-runtime/image-local-registry`.
-- The runtime path `/opt/opendep/cargo-runtime/local-registry` is now a bind-time symlink target chosen by the adapter:
-  - shared preprocess-managed data first
-  - baked image fallback second
-- The current refactor-stage build expects that checkout to exist at `resolving/containerization/images/cargo/crates.io-index/` in the repository working tree.
+- The current Dockerfile no longer bakes a Cargo registry snapshot into the image. The runtime metadata contract is the preprocess-managed shared volume mounted at `/cargo-preprocess-data/local-registry`.
+- The adapter no longer performs shared-versus-baked source selection. It validates the mounted preprocess data and fails fast when that contract is not satisfied.
 - The resolver runtime is launched from the dedicated Cargo runtime root instead of relying on accidental `/app/.cargo` config discovery.
-- The repository-local `resolving/containerization/images/cargo/crates.io-index/` checkout is a temporary refactor-stage bootstrap input. The intended closing-state design is to replace it with either image-side clone or preprocess-managed shared Cargo metadata.
+- A legacy local `resolving/containerization/images/cargo/crates.io-index/` checkout is no longer used by the build and can be removed from a developer workspace.
 - The named volume `resolver-cargo-home-cache` is recommended for repeated runs.
+- The shared metadata volume defaults to `opendep-cargo-preprocess-data`. Override it consistently in both compose stacks with `CARGO_PREPROCESS_DATA_VOLUME_NAME` if needed.
 - The native binary currently supports the `resolve` command.

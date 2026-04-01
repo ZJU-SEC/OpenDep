@@ -9,6 +9,11 @@ services:
       PYTHONPATH: /workspace
       PYTHONUNBUFFERED: "1"
       CARGO_INDEX_URL: ${CARGO_INDEX_URL:-https://github.com/rust-lang/crates.io-index.git}
-      CARGO_PREPROCESS_DATA_ROOT: ${CARGO_PREPROCESS_DATA_ROOT:-/workspace/pre-process/cargo/data}
+      CARGO_PREPROCESS_DATA_ROOT: ${CARGO_PREPROCESS_DATA_ROOT:-/cargo-preprocess-data}
     volumes:
       - ../..:/workspace
+      - cargo_preprocess_data:/cargo-preprocess-data
+
+volumes:
+  cargo_preprocess_data:
+    name: ${CARGO_PREPROCESS_DATA_VOLUME_NAME:-opendep-cargo-preprocess-data}
