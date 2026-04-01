@@ -1,18 +1,19 @@
 # resolving Gateway
 
-This directory contains the gateway implementation used by the OpenDep resolver system.
-It is the host-side orchestration layer that sits behind the repository-root `main.py` entrypoint.
+This directory contains the gateway implementation used by the OpenDep resolver
+system. It is the host-side orchestration layer behind the repository-root
+`main.py` entrypoint.
 
 ## Purpose
 
-The gateway is responsible for turning user-facing CLI requests into normalized resolver operations.
-In practice, the code in `resolving/gateway/` is responsible for:
+The gateway turns user-facing CLI requests into normalized resolver
+operations. In practice, `resolving/gateway/` is responsible for:
 
 - parsing and validating gateway-level request data
 - selecting the correct resolver entry from the registry
 - checking command and format compatibility before launch
 - invoking the configured backend launcher
-- normalizing backend responses into the shared gateway schema
+- normalizing backend responses into the shared response schema
 - producing consistent error handling and response envelopes
 
 ## Relationship to the top-level entrypoint
@@ -58,7 +59,7 @@ A typical gateway request flows through this directory in the following order:
 The gateway works together with several adjacent parts of the repository:
 
 - `resolving/config/` provides resolver registry files selected by the gateway
-- `resolving/spec/` provides the shared request and response specification documents
+- `resolving/spec/` provides the shared request/response protocol documents
 - `resolving/containerization/` provides Docker-based backend execution for the integrated ecosystems
 - `main.py` exposes the user-facing CLI that calls into this gateway implementation
 
@@ -66,4 +67,4 @@ The gateway works together with several adjacent parts of the repository:
 
 - This directory does not contain a separate executable entry script.
 - The gateway remains ecosystem-agnostic; ecosystem-specific semantics belong in the backend adapters and native resolvers.
-- The current integrated containerized ecosystems are `npm`, `maven`, `cargo`, and `go`.
+- The current container stack covers `pip`, `npm`, `maven`, `cargo`, and `go`.

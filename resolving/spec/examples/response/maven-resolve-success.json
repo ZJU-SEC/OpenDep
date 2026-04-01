@@ -6,7 +6,7 @@
   "ecosystem": "maven",
   "resolver": {
     "name": "maven-dependency-resolver",
-    "adapter_version": "v1",
+    "adapter_version": "container-v1",
     "backend_version": "legacy-java"
   },
   "result": {

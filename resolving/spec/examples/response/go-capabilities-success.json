@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.0",
+  "request_id": "example-go-capabilities",
+  "trace_id": "example-go-capabilities-trace",
+  "status": "ok",
+  "ecosystem": "go",
+  "resolver": {
+    "name": "go-dependency-resolver",
+    "adapter_version": "container-v1",
+    "backend_version": "native-go"
+  },
+  "result": {
+    "capabilities": {
+      "commands": [
+        "resolve",
+        "list",
+        "health",
+        "capabilities"
+      ],
+      "formats": [
+        "graph",
+        "full"
+      ],
+      "features": [
+        "raw",
+        "replace",
+        "exclude",
+        "buildlist",
+        "indexed-postgres"
+      ],
+      "metadata_modes": [
+        "online",
+        "indexed"
+      ],
+      "platform": false
+    }
+  },
+  "diagnostics": [],
+  "raw": null,
+  "timing": {
+    "duration_ms": 1
+  }
+}

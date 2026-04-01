@@ -1,7 +1,6 @@
 # Go Pre-process Workspace
 
-`pre-process/go/` is the offline indexing workspace for Go module metadata.
-This README documents the Docker-based workflow and follows the same shared PostgreSQL setup used by `pre-process/pip`.
+`pre-process/go/` is the offline indexing workspace for Go module metadata. This README documents the Docker workflow and the shared PostgreSQL contract.
 
 ## What It Does
 
@@ -10,18 +9,14 @@ The Go preprocess container can:
 - read explicit `module@version` inputs from CLI flags or a text file
 - fetch raw `.mod` files from a Go proxy
 - store one PostgreSQL row per requested `(module_path, version)`
-- preserve the exact `raw_mod` payload so the future indexed resolver can keep using the existing Go parser
+- preserve the exact `raw_mod` payload so the indexed resolver can keep using the existing Go parser
 
 The current indexed target is:
 
 - database: `opendep_preprocess`
 - table: `go_metadata`
 
-This is the selected Scheme A design:
-
-- one table keyed by `(module_path, version)`
-- `raw_mod` is the authoritative payload
-- dependency edges are not split into separate tables in v1
+The indexed Go resolver reads these rows when `--go-mode indexed` is enabled.
 
 ## Prerequisites
 
@@ -40,18 +35,9 @@ Build the Go preprocess image:
 docker compose -f pre-process/go/docker-compose.yml build
 ```
 
-## Recommended Workflow
+## Workflow
 
-For bulk indexing, use a plain text module list with one `module` or `module@version` per line.
-
-Example file:
-
-[`module-list.txt`](/Users/xingyu/project/Paper/OpenDep/pre-process/go/examples/module-list.txt)
-
-```text
-github.com/rogpeppe/godef@v1.1.2
-golang.org/x/text@v0.23.0
-```
+For bulk indexing, use a plain text module list with one `module` or `module@version` per line. Example file: [`module-list.txt`](examples/module-list.txt)
 
 If a line omits the version, the preprocess pipeline first calls the Go proxy
 `/@v/list` endpoint for that module, then fetches and stores every listed
@@ -70,14 +56,32 @@ docker compose -f pre-process/go/docker-compose.yml run --rm go-preprocess \
 This will:
 
 1. read each `module` or `module@version` entry from the file
-2. when a version is omitted, call `/<escaped module>/@v/list` to enumerate all known versions
-3. fetch `/<escaped module>/@v/<escaped version>.mod` from the configured Go proxy
-4. compute `raw_mod_sha256`
-5. rely on the shared yoyo migration runner over `pre-process/common/database/initdb/`
-6. upsert rows into `go_metadata`
+2. when a version is omitted, call `/<module>/@v/list` to enumerate all known versions
+3. fetch `/<module>/@v/<version>.mod` from the configured Go proxy
+4. upsert rows into `go_metadata`
 
 Use `--concurrency N` when you want to overlap Go proxy fetches for larger module lists.
 The default is `1`, which keeps the fetch path fully sequential.
+
+Build the resolver image:
+
+```bash
+docker compose -f resolving/containerization/docker-compose.yml build resolver-go
+```
+
+Check that the resolver health:
+
+```bash
+python3 main.py health --ecosystem go
+```
+
+Then run a resolve:
+
+```bash
+python3 main.py resolve --ecosystem go --name github.com/rogpeppe/godef --version v1.1.2 --format graph --go-mode indexed --go-index-dsn 'postgresql://opendep:opendep@host.docker.internal:55432/opendep_preprocess' --go-index-table go_metadata
+```
+
+
 
 ## Other Docker Commands
 
@@ -97,16 +101,6 @@ docker compose -f pre-process/go/docker-compose.yml run --rm go-preprocess \
   build \
   --module-file /workspace/pre-process/go/examples/module-list.txt \
   --skip-existing \
-  --pretty
-```
-
-Increase fetch parallelism for batch ingestion:
-
-```bash
-docker compose -f pre-process/go/docker-compose.yml run --rm go-preprocess \
-  build \
-  --module-file /workspace/pre-process/go/examples/module-list.txt \
-  --concurrency 8 \
   --pretty
 ```
 
@@ -130,14 +124,7 @@ The Go preprocess container uses the same shared PostgreSQL defaults as the pip 
 - `PREPROCESS_DB_USER=opendep`
 - `PREPROCESS_DB_PASSWORD=opendep`
 
-To keep `pre-process` and future `resolving` database access aligned, the Go container does not start its own database service.
-It connects to the shared PostgreSQL instance from `pre-process/common/database/`.
-That shared DB stack automatically applies new SQL migrations from `pre-process/common/database/initdb/` through the Python-based yoyo migration runner.
-
 If your PostgreSQL container is exposed differently, override those variables when running the Go preprocess container.
-Use `GO_PREPROCESS_DB_HOST` for the compose-level host override, because `127.0.0.1` inside the container points back to the preprocess container itself.
-
-Example:
 
 ```bash
 GO_PREPROCESS_DB_HOST=host.docker.internal \
@@ -150,11 +137,3 @@ docker compose -f pre-process/go/docker-compose.yml run --rm go-preprocess \
   --module github.com/rogpeppe/godef@v1.1.2 \
   --pretty
 ```
-
-## Notes
-
-- The compose service mounts the repository root into `/workspace`.
-- Use `/workspace/...` paths for files passed into the container.
-- The current workflow is Docker-first and targets the same PostgreSQL instance that other preprocess jobs use.
-- `--ensure-schema` remains available as a local fallback, but the shared database lifecycle is now expected to be driven by yoyo migrations.
-- The future Go indexed resolver should read from `go_metadata` instead of requiring a separate database.

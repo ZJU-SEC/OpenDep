@@ -18,4 +18,4 @@ COPY cargo/docker-entrypoint.sh /usr/local/bin/preprocess-cargo
 RUN chmod +x /usr/local/bin/preprocess-cargo
 
 ENTRYPOINT ["preprocess-cargo"]
-CMD ["status"]
+CMD ["--help"]

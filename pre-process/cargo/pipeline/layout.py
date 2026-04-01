@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -8,6 +7,7 @@ from pathlib import Path
 CURRENT_FILE = Path(__file__).resolve()
 CARGO_ROOT = CURRENT_FILE.parents[1]
 DEFAULT_INDEX_URL = "https://github.com/rust-lang/crates.io-index.git"
+SHARED_DATA_ROOT = Path("/cargo-preprocess-data")
 
 
 def _resolve_path(value: str | Path) -> Path:
@@ -29,15 +29,13 @@ class CargoDataLayout:
         local_registry_dir: str | None = None,
     ) -> "CargoDataLayout":
         resolved_data_root = _resolve_path(
-            data_root or os.getenv("CARGO_PREPROCESS_DATA_ROOT") or (CARGO_ROOT / "data")
+            data_root or SHARED_DATA_ROOT
         )
         resolved_index_dir = _resolve_path(
-            index_dir or os.getenv("CARGO_PREPROCESS_INDEX_DIR") or (resolved_data_root / "crates.io-index")
+            index_dir or (resolved_data_root / "crates.io-index")
         )
         resolved_local_registry_dir = _resolve_path(
-            local_registry_dir
-            or os.getenv("CARGO_PREPROCESS_LOCAL_REGISTRY_DIR")
-            or (resolved_data_root / "local-registry")
+            local_registry_dir or (resolved_data_root / "local-registry")
         )
         return cls(
             data_root=resolved_data_root,

@@ -6,7 +6,7 @@
   "ecosystem": "npm",
   "resolver": {
     "name": "npm-dependency-resolver",
-    "adapter_version": "v1",
+    "adapter_version": "container-v1",
     "backend_version": "legacy-cpp"
   },
   "result": {

@@ -1,12 +1,12 @@
 {
   "schema_version": "1.0",
-  "request_id": "example-request-1",
-  "trace_id": "example-trace-1",
+  "request_id": "example-pip-resolve",
+  "trace_id": "example-pip-resolve-trace",
   "command": "resolve",
   "ecosystem": "pip",
   "package": {
     "name": "requests",
-    "version": "2.31.0"
+    "version": "2.32.5"
   },
   "options": {
     "format": "graph",

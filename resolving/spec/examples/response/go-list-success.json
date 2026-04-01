@@ -1,0 +1,44 @@
+{
+  "schema_version": "1.0",
+  "request_id": "example-go-list",
+  "trace_id": "example-go-list-trace",
+  "status": "ok",
+  "ecosystem": "go",
+  "resolver": {
+    "name": "go-dependency-resolver",
+    "adapter_version": "container-v1",
+    "backend_version": "native-go"
+  },
+  "result": {
+    "list": {
+      "root": {
+        "path": "github.com/rogpeppe/godef",
+        "version": "v1.1.2"
+      },
+      "entries": [
+        {
+          "path": "9fans.net/go",
+          "version": "v0.0.0-20181112161441-237454027057"
+        },
+        {
+          "path": "golang.org/x/tools",
+          "version": "v0.21.1-0.20240508182429-e35e4ccd0d2d"
+        }
+      ],
+      "metrics": {
+        "entry_count": 2
+      }
+    },
+    "metrics": {
+      "entry_count": 2
+    }
+  },
+  "diagnostics": [],
+  "raw": null,
+  "timing": {
+    "duration_ms": 1
+  },
+  "metrics": {
+    "entry_count": 2
+  }
+}

@@ -1,27 +1,27 @@
 {
   "schema_version": "1.0",
-  "request_id": "example-request-1",
-  "trace_id": "example-trace-1",
+  "request_id": "example-pip-resolve",
+  "trace_id": "example-pip-resolve-trace",
   "status": "ok",
   "ecosystem": "pip",
   "resolver": {
     "name": "pip-dependency-resolver",
-    "adapter_version": "v1",
-    "backend_version": "legacy"
+    "adapter_version": "container-v1",
+    "backend_version": "python-backend-v1"
   },
   "result": {
     "root": {
-      "id": "pip:requests@2.31.0",
+      "id": "pip:requests@2.32.5",
       "ecosystem": "pip",
       "name": "requests",
-      "version": "2.31.0"
+      "version": "2.32.5"
     },
     "nodes": [
       {
-        "id": "pip:requests@2.31.0",
+        "id": "pip:requests@2.32.5",
         "ecosystem": "pip",
         "name": "requests",
-        "version": "2.31.0",
+        "version": "2.32.5",
         "labels": { "scope": "root" },
         "attributes": { "optional": false, "peer": false, "dev": false }
       }

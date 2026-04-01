@@ -1,8 +1,16 @@
-# Go resolving Image
+# Go Resolver Image
 
-This directory contains the native Go backend image for Go module dependency resolution.
-The image build compiles a standalone `go-resolver` binary and installs it as the image entrypoint.
-The backend supports both `online` and `indexed` metadata modes.
+This directory contains the native Go backend image for Go module dependency
+resolution. The image build compiles a standalone `go-resolver` binary and
+installs it as the image entrypoint. The backend supports both `online` and
+`indexed` metadata modes.
+
+## Current Command Alignment
+
+| Path | Entry | Commands | Formats | Modes |
+| --- | --- | --- | --- | --- |
+| direct image run | native binary `/usr/local/bin/go-resolver` | raw backend `resolve`, `list` | backend graph or build-list output | `online`, `indexed` |
+| compose service | `resolver-go` with `runtime/go_adapter.py` | `resolve`, `list`, `health`, `capabilities` | `graph`, `full` | `online`, `indexed` |
 
 ## Directory structure
 
@@ -63,6 +71,21 @@ docker run --rm \
   -e GO_INDEX_DSN='postgresql://opendep:opendep@host.docker.internal:55432/opendep_preprocess' \
   -e GO_INDEX_TABLE='go_metadata' \
   go-resolver:latest resolve github.com/rogpeppe/godef v1.1.2 --format graph
+```
+
+## Compose Service Path
+
+The compose service `resolver-go` overrides the image entrypoint to
+`python3 resolving/containerization/runtime/go_adapter.py`, which is the path
+used by `main.py`.
+
+Examples:
+
+```bash
+python3 main.py resolve --ecosystem go --name github.com/rogpeppe/godef --version v1.1.2 --format graph --go-mode online
+python3 main.py list --ecosystem go --name github.com/rogpeppe/godef --version v1.1.2 --go-mode indexed --go-index-dsn 'postgresql://opendep:opendep@host.docker.internal:55432/opendep_preprocess' --go-index-table go_metadata
+python3 main.py health --ecosystem go --go-mode indexed --go-index-dsn 'postgresql://opendep:opendep@host.docker.internal:55432/opendep_preprocess' --go-index-table go_metadata
+python3 main.py capabilities --ecosystem go
 ```
 
 ## Notes

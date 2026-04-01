@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "request_id": "example-request-health",
-  "trace_id": "example-trace-health",
+  "request_id": "example-pip-health",
+  "trace_id": "example-pip-health-trace",
   "command": "health",
   "ecosystem": "pip",
   "options": {

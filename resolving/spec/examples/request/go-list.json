@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "request_id": "example-go-list",
+  "trace_id": "example-go-list-trace",
+  "command": "list",
+  "ecosystem": "go",
+  "package": {
+    "name": "github.com/rogpeppe/godef",
+    "version": "v1.1.2"
+  },
+  "options": {
+    "timeout_ms": 120000,
+    "return_raw": false
+  },
+  "context": {
+    "caller": "example"
+  }
+}

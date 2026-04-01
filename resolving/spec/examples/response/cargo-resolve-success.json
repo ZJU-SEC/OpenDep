@@ -6,8 +6,8 @@
   "ecosystem": "cargo",
   "resolver": {
     "name": "cargo-dependency-resolver",
-    "adapter_version": "v1",
-    "backend_version": "legacy-rust"
+    "adapter_version": "container-v1",
+    "backend_version": "native-rust"
   },
   "result": {
     "root": {

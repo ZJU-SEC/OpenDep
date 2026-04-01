@@ -1,7 +1,6 @@
 # npm Pre-process Workspace
 
 `pre-process/npm/` is the offline indexing workspace for npm package metadata.
-This README documents the Docker-based workflow and follows the same shared PostgreSQL setup used by the other preprocess ecosystems.
 
 ## What It Does
 
@@ -10,21 +9,7 @@ The npm preprocess container can:
 - read explicit package-name inputs from CLI flags or a text file
 - fetch raw npm packuments from the configured registry
 - store one PostgreSQL row per requested package name
-- preserve the exact `raw_packument` payload so a future indexed npm resolver can keep using the existing package-document parsing logic
-
-The current indexed target is:
-
-- database: `opendep_preprocess`
-- table: `npm_metadata`
-- future checkpoint table: `npm_sync_state`
-- delete tombstone table: `npm_tombstones`
-
-This is the selected v1 design:
-
-- one table keyed by package name
-- `raw_packument` is the authoritative payload
-- package versions and dependency maps are not split into child tables in v1
-- v1 is batch ingestion of explicit package names, not `_changes`-based continuous sync
+- preserve the exact `raw_packument` payload so the indexed npm resolver can keep using the existing package-document parsing logic
 
 ## Prerequisites
 
@@ -43,18 +28,9 @@ Build the npm preprocess image:
 docker compose -f pre-process/npm/docker-compose.yml build
 ```
 
-## Recommended Workflow
+## Workflow
 
-For bulk indexing, use a plain text package list with one package name per line.
-
-Example file:
-
-[`package-list.txt`](/Users/xingyu/project/Paper/OpenDep/pre-process/npm/examples/package-list.txt)
-
-```text
-is-odd
-@types/node
-```
+For bulk indexing, use a plain text package list with one package name per line. Example file: [`package-list.txt`](examples/package-list.txt)
 
 Run the recommended package-file workflow:
 
@@ -71,11 +47,29 @@ This will:
 1. read each package name from the file
 2. fetch `/<escaped package>` from the configured npm registry
 3. compute `raw_packument_sha256`
-4. rely on the shared yoyo migration runner over `pre-process/common/database/initdb/`
+4. rely on shared yoyo migrations from `pre-process/common/database/initdb/`
 5. upsert rows into `npm_metadata`
 
 Use `--concurrency N` when you want to overlap registry fetches for larger package lists.
 The default is `1`, which keeps the fetch path fully sequential.
+
+Build the resolver image:
+
+```bash
+docker compose -f resolving/containerization/docker-compose.yml build resolver-npm
+```
+
+Check that the resolver health:
+
+```bash
+python3 main.py health --ecosystem npm
+```
+
+Then run a resolve:
+
+```bash
+python3 main.py resolve --ecosystem npm --name left-pad --version 1.3.0 --format graph --npm-mode indexed --npm-index-dsn 'postgresql://opendep:opendep@host.docker.internal:55432/opendep_preprocess' --npm-index-table npm_metadata
+```
 
 ## Other Docker Commands
 
@@ -171,9 +165,10 @@ The npm preprocess container uses the same shared PostgreSQL defaults as the oth
 - `PREPROCESS_DB_USER=opendep`
 - `PREPROCESS_DB_PASSWORD=opendep`
 
-To keep `pre-process` and future `resolving` database access aligned, the npm container does not start its own database service.
-It connects to the shared PostgreSQL instance from `pre-process/common/database/`.
-That shared DB stack automatically applies new SQL migrations from `pre-process/common/database/initdb/` through the Python-based yoyo migration runner.
+To keep `pre-process` and `resolving` aligned, the npm container does not
+start its own database service. It connects to the shared PostgreSQL instance
+from `pre-process/common/database/`, which also applies new SQL migrations
+through the yoyo migration runner.
 
 If your PostgreSQL container is exposed differently, override those variables when running the npm preprocess container.
 Use `NPM_PREPROCESS_DB_HOST` for the compose-level host override, because `127.0.0.1` inside the container points back to the preprocess container itself.
@@ -191,15 +186,3 @@ docker compose -f pre-process/npm/docker-compose.yml run --rm npm-preprocess \
   --package @types/node \
   --pretty
 ```
-
-## Notes
-
-- The compose service mounts the repository root into `/workspace`.
-- Use `/workspace/...` paths for files passed into the container.
-- The current workflow is Docker-first and targets the same PostgreSQL instance that other preprocess jobs use.
-- `--ensure-schema` remains available as a local fallback, but the shared database lifecycle is now expected to be driven by yoyo migrations.
-- `--skip-existing` only skips package names that already have a row in `npm_metadata`; it does not mean the stored packument is the newest possible snapshot.
-- `_changes`-based sync is now available through `sync-once` and `sync-follow`, while the original batch `build` entrypoint remains the simpler option for explicit package lists.
-- The shared migration set now also creates `npm_sync_state` and `npm_tombstones` for checkpointing and package-level delete tracking.
-- `sync-follow` is the PostgreSQL-backed successor to the legacy always-on crawler flow, but it now runs as an explicit command instead of a CouchDB-mirroring Scrapy daemon.
-- Version-level unpublish remains a normal packument replacement in `npm_metadata`; only package-level delete events create rows in `npm_tombstones`.

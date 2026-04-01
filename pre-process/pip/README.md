@@ -1,7 +1,6 @@
 # pip Pre-process Workspace
 
 `pre-process/pip/` is the offline indexing workspace for Python packages.
-This README only documents the Docker-based workflow.
 
 ## What It Does
 
@@ -12,7 +11,7 @@ The pip preprocess container can:
 - extract dependency metadata from each release artifact
 - write normalized rows into the shared preprocessing PostgreSQL database
 
-The indexed pip resolver then reads those rows from `pip_metadata`.
+The pip resolver uses those rows in `indexed` mode.
 
 ## Prerequisites
 
@@ -31,19 +30,9 @@ Build the pip preprocess image:
 docker compose -f pre-process/pip/docker-compose.yml build
 ```
 
-## Recommended Workflow
+## Workflow
 
-For bulk indexing, use a plain text package list with one PyPI package spec per line.
-
-Example file:
-
-[`package-list.txt`](/Users/xingyu/project/Paper/OpenDep/pre-process/pip/examples/package-list.txt)
-
-```text
-requests
-urllib3
-charset-normalizer
-```
+For bulk indexing, use a plain text package list with one PyPI package spec per line. Example file: [`package-list.txt`](examples/package-list.txt)
 
 Run the recommended package-file workflow:
 
@@ -61,9 +50,7 @@ This will:
 2. query the package index for all available non-yanked versions
 3. download a selected artifact for each version
 4. extract dependency metadata
-5. rely on the shared yoyo migration runner over `pre-process/common/database/initdb/`
-6. write the normalized records into PostgreSQL
-7. delete downloaded remote artifacts after successful processing
+5. write the normalized records into PostgreSQL
 
 If you want to avoid downloading release artifacts that have already been
 indexed into PostgreSQL, add `--backfill` or `--skip-existing`.
@@ -74,7 +61,24 @@ indexed into PostgreSQL, add `--backfill` or `--skip-existing`.
 - `--skip-existing`
   - skip any release whose `name + version` already exists in the target table
 
-With either flag, the preprocess pipeline checks the database before attempting to fetch the release artifact, so already indexed release versions are skipped without being downloaded again.
+Build the resolver image:
+
+```bash
+docker compose -f resolving/containerization/docker-compose.yml build resolver-pip
+```
+
+Check that the resolver health:
+
+```bash
+python3 main.py health --ecosystem pip
+```
+
+Then run a resolve:
+
+```bash
+python3 main.py resolve --ecosystem pip --name requests --version 2.32.5 --format graph --pip-mode indexed --pip-index-dsn 'postgresql://opendep:opendep@host.docker.internal:55432/opendep_preprocess' --pip-index-table pip_metadata
+```
+
 
 ## Other Docker Commands
 
@@ -94,16 +98,6 @@ docker compose -f pre-process/pip/docker-compose.yml run --rm pip-preprocess \
   build \
   --project requests \
   --limit 3 \
-  --cache-dir /tmp/pip-preprocess-cache \
-  --pretty
-```
-
-Use a package manifest:
-
-```bash
-docker compose -f pre-process/pip/docker-compose.yml run --rm pip-preprocess \
-  build \
-  --manifest /workspace/pre-process/pip/examples/build-package-manifest.json \
   --cache-dir /tmp/pip-preprocess-cache \
   --pretty
 ```
@@ -160,8 +154,7 @@ docker compose -f pre-process/pip/docker-compose.yml run --rm pip-preprocess \
   --pretty
 ```
 
-If your main goal is to avoid re-downloading already indexed release artifacts,
-prefer:
+If your main goal is to avoid re-downloading already indexed release artifacts, prefer:
 
 ```bash
 docker compose -f pre-process/pip/docker-compose.yml run --rm pip-preprocess \
@@ -182,11 +175,7 @@ The pip preprocess container uses these defaults:
 - `PREPROCESS_DB_USER=opendep`
 - `PREPROCESS_DB_PASSWORD=opendep`
 
-If your PostgreSQL container is exposed differently, override those variables
-when running the preprocess container. Use `PIP_PREPROCESS_DB_HOST` for the
-compose-level host override, because `127.0.0.1` inside the container points
-back to the preprocess container itself.
-The shared DB stack automatically applies new SQL migrations from `pre-process/common/database/initdb/` through the Python-based yoyo migration runner.
+If your PostgreSQL container is exposed differently, override those variables when running the preprocess container. Use `PIP_PREPROCESS_DB_HOST` for the compose-level host override, because `127.0.0.1` inside the container points back to the preprocess container itself.
 
 Example:
 
@@ -201,14 +190,3 @@ docker compose -f pre-process/pip/docker-compose.yml run --rm pip-preprocess \
   --project requests==2.31.0 \
   --pretty
 ```
-
-## Notes
-
-- The compose service mounts the repository root into `/workspace`.
-- Use `/workspace/...` paths for files passed into the container.
-- `--cleanup-downloaded-artifacts` only removes remotely downloaded artifacts.
-- It does not delete the package list file, local artifact inputs, mirror files, or cached PyPI JSON metadata.
-- `--ensure-schema` remains available as a local fallback, but the shared database lifecycle is now expected to be driven by yoyo migrations.
-- The current indexed target is:
-  - database: `opendep_preprocess`
-  - table: `pip_metadata`

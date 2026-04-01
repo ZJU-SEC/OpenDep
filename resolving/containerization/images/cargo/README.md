@@ -1,7 +1,15 @@
-# Cargo resolving Image
+# Cargo Resolver Image
 
-This directory contains the Rust backend image for Cargo dependency resolution.
-The image build compiles the native resolver binary and installs it as the image entrypoint.
+This directory contains the Rust backend image for Cargo dependency
+resolution. The image build compiles the native resolver binary and installs
+it as the image entrypoint.
+
+## Current Command Alignment
+
+| Path | Entry | Commands | Formats | Runtime contract |
+| --- | --- | --- | --- | --- |
+| direct image run | native binary `/usr/local/bin/cargo-resolver` | raw backend `resolve` only | `graph`, `full` | shared Cargo home cache plus preprocess-managed `local-registry` |
+| compose service | `resolver-cargo` with `runtime/cargo_adapter.py` | `resolve`, `health`, `capabilities` | `graph`, `full` | shared Cargo home cache plus preprocess-managed `local-registry` |
 
 ## Directory structure
 
@@ -29,7 +37,9 @@ docker build -f resolving/containerization/images/cargo/Dockerfile -t cargo-reso
 
 The current Docker build assumes repository-root context.
 It compiles the native resolver binary and stages the runtime Cargo config under `/opt/opendep/cargo-runtime/.cargo/config.toml`.
-The shared preprocess-managed data under `pre-process/cargo/data/` and the legacy local path `resolving/containerization/images/cargo/crates.io-index/` are excluded from the Docker build context by the repository-root `.dockerignore`.
+The image does not rely on repository-local Cargo preprocess data. Shared
+resolver metadata is supplied later through the mounted
+`opendep-cargo-preprocess-data` volume.
 
 ## Run the image
 
@@ -46,33 +56,44 @@ docker run --rm \
   resolve rand 0.8.5 --format full --pretty
 ```
 
+Example native graph-format run:
+
+```bash
+docker run --rm \
+  -v opendep-cargo-preprocess-data:/cargo-preprocess-data:ro \
+  -v resolver-cargo-home-cache:/cargo-home \
+  cargo-resolver:latest \
+  resolve tokio 1.38.0 --format graph --pretty
+```
+
 ## Active and legacy entrypoints
 
-The active resolver path for containerized request handling is:
+The active resolver path for container request handling is:
 
-- [cargo_resolver.rs](/Users/xingyu/project/Paper/OpenDep/resolving/containerization/images/cargo/src/bin/cargo_resolver.rs)
-- [resolver.rs](/Users/xingyu/project/Paper/OpenDep/resolving/containerization/images/cargo/src/resolver.rs)
-- [registry_index.rs](/Users/xingyu/project/Paper/OpenDep/resolving/containerization/images/cargo/src/registry_index.rs)
+- [cargo_resolver.rs](src/bin/cargo_resolver.rs)
+- [resolver.rs](src/resolver.rs)
+- [registry_index.rs](src/registry_index.rs)
 
 The crate default run target now points at `cargo_resolver`, so a plain `cargo run` matches the active CLI path.
 
 The following code still exists in the Cargo image source tree but is not on the active `resolver-cargo` request path:
 
-- [main.rs](/Users/xingyu/project/Paper/OpenDep/resolving/containerization/images/cargo/src/main.rs)
-- [get_deps.rs](/Users/xingyu/project/Paper/OpenDep/resolving/containerization/images/cargo/src/bin/get_deps.rs)
-- [count_deps.rs](/Users/xingyu/project/Paper/OpenDep/resolving/containerization/images/cargo/src/bin/count_deps.rs)
-- [complete_deps.rs](/Users/xingyu/project/Paper/OpenDep/resolving/containerization/images/cargo/src/bin/complete_deps.rs)
-- [batch/](/Users/xingyu/project/Paper/OpenDep/resolving/containerization/images/cargo/src/batch)
+- [main.rs](src/main.rs)
+- [get_deps.rs](src/bin/get_deps.rs)
+- [count_deps.rs](src/bin/count_deps.rs)
+- [complete_deps.rs](src/bin/complete_deps.rs)
+- [batch/](src/batch)
 
 ## Shared local-registry mode
 
-The active compose-based resolver path now supports a preprocess-managed shared Cargo `local-registry`.
+The active compose service path supports a preprocess-managed shared Cargo
+`local-registry`.
 The intended operator flow is:
 
 1. Prepare the shared Docker volume `opendep-cargo-preprocess-data` through the Cargo preprocess workspace.
 2. Build the resolver image.
-3. Run `resolver-cargo` through [docker-compose.yml](/Users/xingyu/project/Paper/OpenDep/resolving/containerization/docker-compose.yml), which mounts that same volume at `/cargo-preprocess-data`.
-4. Let [cargo_adapter.py](/Users/xingyu/project/Paper/OpenDep/resolving/containerization/runtime/cargo_adapter.py) validate that the preprocess-managed mount is present before serving requests.
+3. Run `resolver-cargo` through [docker-compose.yml](../../docker-compose.yml), which mounts that same volume at `/cargo-preprocess-data`.
+4. Let [cargo_adapter.py](../../runtime/cargo_adapter.py) validate that the preprocess-managed mount is present before serving requests.
 
 Example preprocess bootstrap:
 
@@ -81,6 +102,14 @@ docker compose -f pre-process/cargo/docker-compose.yml run --rm cargo-preprocess
 docker compose -f pre-process/cargo/docker-compose.yml run --rm cargo-preprocess prepare-local-registry --force --pretty
 docker compose -f resolving/containerization/docker-compose.yml build resolver-cargo
 python3 main.py health --ecosystem cargo
+```
+
+Gateway-facing examples after bootstrap:
+
+```bash
+python3 main.py capabilities --ecosystem cargo
+python3 main.py resolve --ecosystem cargo --name rand --version 0.8.5 --format graph
+python3 main.py resolve --ecosystem cargo --name rand --version 0.8.5 --format full --return-raw
 ```
 
 When the shared mount is available, health should report:
@@ -98,7 +127,7 @@ python3 main.py resolve --ecosystem cargo --name tokio --version 1.38.0 --format
 
 If the shared mount is absent or incomplete, the adapter now fails fast and reports a misconfiguration instead of silently falling back to image-baked data.
 
-Health output now makes the source selection more explicit by reporting:
+Health output makes the source selection explicit by reporting:
 
 - `preprocess_registry_mount`
 - `runtime_registry_source`
@@ -107,7 +136,9 @@ Health output now makes the source selection more explicit by reporting:
 
 ## Notes
 
-- The current Dockerfile no longer bakes a Cargo registry snapshot into the image. The runtime metadata contract is the preprocess-managed shared volume mounted at `/cargo-preprocess-data/local-registry`.
+- The current Dockerfile no longer bakes a Cargo registry snapshot into the
+  image. The runtime metadata contract is the preprocess-managed shared volume
+  mounted at `/cargo-preprocess-data/local-registry`.
 - The adapter no longer performs shared-versus-baked source selection. It validates the mounted preprocess data and fails fast when that contract is not satisfied.
 - The resolver runtime is launched from the dedicated Cargo runtime root instead of relying on accidental `/app/.cargo` config discovery.
 - A legacy local `resolving/containerization/images/cargo/crates.io-index/` checkout is no longer used by the build and can be removed from a developer workspace.

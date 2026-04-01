@@ -1,6 +1,6 @@
 # Shared Pre-process Modules
 
-This directory is reserved for cross-ecosystem helpers used by preprocessing and database-loading jobs.
+This directory contains cross-ecosystem helpers used by preprocess and database-loading jobs.
 
 ## Quick start
 
@@ -13,13 +13,4 @@ docker compose \
   up -d
 ```
 
-If you want custom local settings, copy `pre-process/common/database/.env.example` to
-`pre-process/common/database/.env`, edit the values, and replace the `--env-file` path.
-
-The shared DB stack also includes a one-shot Python migration service that applies new SQL migrations from `pre-process/common/database/initdb/` into the shared PostgreSQL database.
-
-## Subdirectories
-
-- `database/`: shared PostgreSQL container config, SQL migration files, Python migration-runner config, connection management, transaction helpers, batch writers, SQL helpers
-- `models/`: normalized record definitions and shared internal contracts
-- `utils/`: logging, retry, serialization, path, and small helper utilities
+If you want custom local settings, copy `pre-process/common/database/.env.example` to `pre-process/common/database/.env`, edit the values, and replace the `--env-file` path.

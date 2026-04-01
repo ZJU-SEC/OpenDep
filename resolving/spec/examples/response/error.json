@@ -1,13 +1,13 @@
 {
   "schema_version": "1.0",
-  "request_id": "example-request-error",
-  "trace_id": "example-trace-error",
+  "request_id": "example-invalid-resolve",
+  "trace_id": "example-invalid-resolve-trace",
   "status": "error",
   "ecosystem": "pip",
   "resolver": {
-    "name": "pip-dependency-resolver",
+    "name": "resolver-gateway",
     "adapter_version": "v1",
-    "backend_version": "legacy"
+    "backend_version": null
   },
   "error": {
     "code": "INVALID_ARGUMENT",
@@ -17,7 +17,5 @@
   },
   "diagnostics": [],
   "raw": null,
-  "timing": {
-    "duration_ms": 1
-  }
+  "timing": null
 }

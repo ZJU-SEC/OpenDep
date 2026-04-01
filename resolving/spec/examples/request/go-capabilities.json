@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0",
+  "request_id": "example-go-capabilities",
+  "trace_id": "example-go-capabilities-trace",
+  "command": "capabilities",
+  "ecosystem": "go",
+  "options": {
+    "timeout_ms": 5000
+  },
+  "context": {
+    "caller": "example"
+  }
+}

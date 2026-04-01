@@ -1,57 +1,51 @@
 # Maven Pre-process Workspace
 
-`pre-process/maven/` has one job:
+`pre-process/maven/` warms Maven `pom` files and required `maven-metadata.xml` into the shared `.m2/repository` so the Maven resolver under `resolving/` can reuse the same cache.
 
-- warm Maven `pom` files and required `maven-metadata.xml` into `.m2/repository`
-- let the Maven resolver under `resolving/` reuse the same cache
-- provide `index-all` as the main command for package-list or inventory indexing
+## What It Does
 
-This README only keeps the practical usage flow.
-Assume all commands are run from the repository root.
+The Maven preprocess workspace currently:
 
-## Shared Cache Contract
+- warms Maven `pom` files into the shared `.m2` repository
+- fetches and stores required `maven-metadata.xml`
 
-- Maven preprocess repository path: `/root/.m2/repository`
-- Maven resolver repository path: `/root/.m2/repository`
-- Shared Docker volume: `resolver-maven-m2-cache`
+Maven preprocess does not write to a shared preprocess PostgreSQL table. Its handoff to the resolver is the shared Docker volume `resolver-maven-m2-cache`.
 
-Recommended workflow:
+## Shared `.m2` Handoff
 
-1. Run Maven preprocess first and write target POM files into the shared `.m2`
-2. Run Maven resolver afterwards and reuse the same `.m2`
+Maven preprocess and the Maven resolver both use the same repository root:
 
-## Recommended Workflow
+- preprocess repository root: `/root/.m2/repository`
+- resolver repository root: `/root/.m2/repository`
+- shared Docker volume: `resolver-maven-m2-cache`
 
-Use the resolver compose file directly, because it already includes:
+## Workflow
 
-- `preprocess-maven`
-- `resolver-maven`
+Use the preprocess compose file for indexing and warm-up:
+
+- `pre-process/maven/docker-compose.yml`
+
+Use the resolver entrypoints separately when you want to consume the warmed
+cache:
+
+- `python3 main.py ...`
+- `resolving/containerization/docker-compose.yml`
 
 ### 1. Build Images
 
 ```bash
-docker compose -f resolving/containerization/docker-compose.yml build preprocess-maven resolver-maven
+docker compose -f pre-process/maven/docker-compose.yml build maven-preprocess
 ```
 
 ### 2. Run Package-List Indexing
 
-For Maven package-list indexing, use one package name per line in `groupId:artifactId` form.
-
-Example file:
-
-[`package-list.txt`](/Users/xingyu/project/Paper/OpenDep/pre-process/maven/examples/package-list.txt)
-
-```text
-adarwin:adarwin
-org.apache.logging.log4j:log4j-core
-junit:junit
-```
+For Maven package-list indexing, use one package name per line in `groupId:artifactId` form. Example file: [`package-list.txt`](examples/package-list.txt)
 
 Recommended command:
 
 ```bash
-docker compose -f resolving/containerization/docker-compose.yml run --rm \
-  preprocess-maven index-all \
+docker compose -f pre-process/maven/docker-compose.yml run --rm \
+  maven-preprocess index-all \
   --package-file /workspace/pre-process/maven/examples/package-list.txt \
   --sync-mode incremental \
   --state-file /workspace/tmp/maven-index.state.jsonl \
@@ -71,8 +65,8 @@ Notes:
 You can also provide packages directly on the command line:
 
 ```bash
-docker compose -f resolving/containerization/docker-compose.yml run --rm \
-  preprocess-maven index-all \
+docker compose -f pre-process/maven/docker-compose.yml run --rm \
+  maven-preprocess index-all \
   --package junit:junit \
   --package org.apache.logging.log4j:log4j-core \
   --sync-mode incremental \
@@ -82,135 +76,33 @@ docker compose -f resolving/containerization/docker-compose.yml run --rm \
 
 ### 3. Run the Resolver Against the Same `.m2`
 
-```bash
-docker compose -f resolving/containerization/docker-compose.yml run --rm \
-  --entrypoint /usr/local/bin/maven-resolver \
-  resolver-maven \
-  org.apache.logging.log4j:log4j-core:2.23.1
-```
-
-## Common Commands
-
-### Incremental Indexing From a Package List
-
-```bash
-docker compose -f resolving/containerization/docker-compose.yml run --rm \
-  preprocess-maven index-all \
-  --package-file /workspace/pre-process/maven/examples/package-list.txt \
-  --sync-mode incremental \
-  --state-file /workspace/tmp/maven-index.state.jsonl \
-  --failure-log /workspace/tmp/maven-index.failures.jsonl \
-  --pretty
-```
-
-### Full Rescan From a Package List
-
-```bash
-docker compose -f resolving/containerization/docker-compose.yml run --rm \
-  preprocess-maven index-all \
-  --package-file /workspace/pre-process/maven/examples/package-list.txt \
-  --sync-mode full \
-  --pretty
-```
-
-### Repair Missing or Invalid Local Cache Entries
-
-```bash
-docker compose -f resolving/containerization/docker-compose.yml run --rm \
-  preprocess-maven index-all \
-  --package-file /workspace/pre-process/maven/examples/package-list.txt \
-  --sync-mode repair-missing \
-  --state-file /workspace/tmp/maven-index.state.jsonl \
-  --failure-log /workspace/tmp/maven-index.failures.jsonl \
-  --pretty
-```
-
-### Inventory-Based Indexing
-
-If you already have a coordinate inventory in `groupId:artifactId:version` form, `--inventory` still works:
-
-```bash
-docker compose -f resolving/containerization/docker-compose.yml run --rm \
-  preprocess-maven index-all \
-  --inventory /workspace/path/to/maven-inventory.txt \
-  --sync-mode repair-missing \
-  --state-file /workspace/tmp/maven-index.state.jsonl \
-  --failure-log /workspace/tmp/maven-index.failures.jsonl \
-  --pretty
-```
-
-### Warm One Coordinate
-
-```bash
-docker compose -f resolving/containerization/docker-compose.yml run --rm \
-  preprocess-maven warm \
-  junit:junit:4.13.2 \
-  --pretty
-```
-
-### Warm From a Coordinate File
-
-```bash
-docker compose -f resolving/containerization/docker-compose.yml run --rm \
-  preprocess-maven warm \
-  --coordinate-file /workspace/path/to/coordinates.txt \
-  --state-file /workspace/tmp/maven-warm.state.jsonl \
-  --failure-log /workspace/tmp/maven-warm.failures.jsonl \
-  --pretty
-```
-
-## `sync-mode`
-
-- `incremental`
-  - Recommended default mode
-  - Processes newly discovered coordinates and also repairs missing or invalid local `.m2` entries
-- `new-only`
-  - Focuses only on coordinates not yet completed in `state-file`
-- `repair-missing`
-  - Repairs only missing or invalid local POM / metadata entries
-- `full`
-  - Ignores incremental filtering and replans the full inventory
-
-## Standalone Preprocess Compose
-
-You can also run Maven preprocess by itself with `pre-process/maven/docker-compose.yml`.
-
-### Build
-
-```bash
-docker compose -f pre-process/maven/docker-compose.yml build maven-preprocess
-```
-
-### Run
-
-```bash
-docker compose -f pre-process/maven/docker-compose.yml run --rm \
-  maven-preprocess index-all \
-  --package-file /workspace/pre-process/maven/examples/package-list.txt \
-  --sync-mode incremental \
-  --state-file /workspace/tmp/maven-index.state.jsonl \
-  --failure-log /workspace/tmp/maven-index.failures.jsonl \
-  --pretty
-```
-
-This standalone compose file still reuses the same volume:
+The preprocess compose file and the resolver stack share the same Docker
+volume name:
 
 - `resolver-maven-m2-cache`
 
-That means the resolver can still consume the warmed cache afterwards.
+So after indexing or warming through `pre-process/maven/`, the resolver can
+consume the same `.m2` data immediately.
 
-## Notes
+Build the resolver image if needed:
 
-- Use `/workspace/...` paths for files passed into the container
-- The package file or inventory file must be visible inside the container
-- The default local repository root is `/root/.m2/repository`
-- `SNAPSHOT` is not fully offline-warmed in the current phase and will return `partial`
-- `state-file` and `failure-log` should usually be written under mounted paths such as `/workspace/tmp/...`
-- For package-list indexing, `state-file` is usually enough for incremental updates; you do not need a separate database just to track completed versions in the current local workflow
+```bash
+docker compose -f resolving/containerization/docker-compose.yml build resolver-maven
+```
 
-## Related Files
+Run the user-facing resolver path:
 
-- [`docker-compose.yml`](/Users/xingyu/project/Paper/OpenDep/pre-process/maven/docker-compose.yml)
-- [`Dockerfile`](/Users/xingyu/project/Paper/OpenDep/pre-process/maven/Dockerfile)
-- [`tasks.md`](/Users/xingyu/project/Paper/OpenDep/pre-process/maven/tasks.md)
-- [`M2-CONTRACT.md`](/Users/xingyu/project/Paper/OpenDep/pre-process/maven/M2-CONTRACT.md)
+```bash
+python3 main.py resolve --ecosystem maven --name org.apache.logging.log4j:log4j-core --version 2.23.1 --format graph
+```
+
+
+
+### 4. `sync-mode`
+
+- `incremental`: recommended default; processes newly discovered coordinates
+  and repairs missing or invalid local `.m2` entries
+- `new-only`: only processes coordinates not yet completed in `state-file`
+- `repair-missing`: repairs only missing or invalid local POM or metadata
+  entries
+- `full`: ignores incremental filtering and replans the full inventory

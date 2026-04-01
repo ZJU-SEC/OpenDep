@@ -2,7 +2,7 @@
 set -eu
 
 if [ "$#" -eq 0 ]; then
-  set -- status
+  set -- --help
 fi
 
 case "$1" in
@@ -10,7 +10,7 @@ case "$1" in
     shift
     exec python3 /workspace/pre-process/cargo/build.py "$@"
     ;;
-  clone|update|status|prepare-local-registry)
+  clone|update|prepare-local-registry|-h|--help)
     exec python3 /workspace/pre-process/cargo/build.py "$@"
     ;;
   python|python3|bash|sh)

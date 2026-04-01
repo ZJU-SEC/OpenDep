@@ -1,0 +1,44 @@
+{
+  "schema_version": "1.0",
+  "request_id": "example-pip-health",
+  "trace_id": "example-pip-health-trace",
+  "status": "ok",
+  "ecosystem": "pip",
+  "resolver": {
+    "name": "pip-dependency-resolver",
+    "adapter_version": "container-v1",
+    "backend_version": "python-backend-v1"
+  },
+  "result": {
+    "health": {
+      "state": "ok",
+      "checks": [
+        {
+          "name": "python_runtime",
+          "status": "ok",
+          "details": "/usr/bin/python3"
+        },
+        {
+          "name": "backend_module",
+          "status": "ok",
+          "details": "resolving.containerization.images.pip.backend"
+        },
+        {
+          "name": "metadata_mode",
+          "status": "ok",
+          "details": "live"
+        },
+        {
+          "name": "index_dsn",
+          "status": "ok",
+          "details": "not configured"
+        }
+      ]
+    }
+  },
+  "diagnostics": [],
+  "raw": null,
+  "timing": {
+    "duration_ms": 1
+  }
+}

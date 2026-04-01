@@ -76,7 +76,7 @@ def clone_index(index_url: str, destination: Path, *, force: bool = False) -> di
     return describe_index_repo(destination)
 
 
-def update_index(destination: Path) -> dict[str, object]:
+def update_index(destination: Path, *, force: bool = False) -> dict[str, object]:
     if not destination.exists():
         raise GitIndexError(f"managed index clone does not exist: {destination}")
     if not is_git_repo(destination):
@@ -84,9 +84,10 @@ def update_index(destination: Path) -> dict[str, object]:
 
     before = describe_index_repo(destination)
     if before["dirty"]:
-        raise GitIndexError(
-            f"managed index clone has local modifications and cannot be updated safely: {destination}"
-        )
+        if not force:
+            raise GitIndexError(
+                f"managed index clone has local modifications and cannot be updated safely: {destination}; rerun with --force to discard them"
+            )
 
     branch = str(before["branch"] or "")
     if not branch or branch == "HEAD":

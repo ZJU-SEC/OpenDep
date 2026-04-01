@@ -6,8 +6,8 @@
   "ecosystem": "go",
   "resolver": {
     "name": "go-dependency-resolver",
-    "adapter_version": "v1",
-    "backend_version": "legacy-go"
+    "adapter_version": "container-v1",
+    "backend_version": "native-go"
   },
   "result": {
     "root": {

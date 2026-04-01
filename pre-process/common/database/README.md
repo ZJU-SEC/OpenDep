@@ -1,12 +1,17 @@
 # Shared Pre-process Database
 
-This directory contains the shared PostgreSQL container setup used by preprocessing jobs.
-It provides the shared PostgreSQL service, the SQL migration files, and a Python-based migration runner for preprocess jobs.
+This directory contains the shared PostgreSQL setup used by preprocess jobs.
+It provides the database service, SQL migrations, and a Python migration
+runner.
+
+This README only covers PostgreSQL-backed preprocess paths.
+In the current stack, Maven and Cargo use shared filesystem contracts instead
+of shared preprocess tables.
 
 The intended deployment model is:
 
-- all ecosystems share one PostgreSQL database instance
-- each ecosystem writes to its own table
+- all PostgreSQL-backed ecosystems share one PostgreSQL instance
+- each PostgreSQL-backed ecosystem writes to its own table
 - `pre-process/` is responsible for preparing and loading data
 - `resolving/` reads the indexed data from the configured ecosystem table
 
@@ -14,8 +19,8 @@ The intended deployment model is:
 
 - `pip` -> `pip_metadata`
 - `npm` -> `npm_metadata`, `npm_sync_state`, `npm_tombstones`
-- `maven` -> reserved for future table
-- `cargo` -> reserved for future table
+- `maven` -> no shared PostgreSQL table in the current stack; uses shared `.m2` cache volume `resolver-maven-m2-cache`
+- `cargo` -> no shared PostgreSQL table in the current phase; uses managed `crates.io-index` plus prepared `local-registry`
 - `go` -> `go_metadata`
 
 ## Files
@@ -48,8 +53,10 @@ This starts:
 - `preprocess-db` - the shared PostgreSQL service
 - `preprocess-db-migrate` - a one-shot Python migration runner based on `yoyo-migrations`
 
-The migration runner reads SQL files from `pre-process/common/database/initdb/` and records applied migrations in yoyo's tracking tables in PostgreSQL.
-On later startups it only applies migration files that have not yet been recorded.
+The migration runner reads SQL files from
+`pre-process/common/database/initdb/` and records applied migrations in yoyo's
+tracking tables. On later startups it only applies files that have not yet
+been recorded.
 
 If you want a local editable env file:
 
@@ -111,7 +118,7 @@ PIP_INDEX_TABLE=pip_metadata
 
 ## go integration
 
-The Go preprocessing and future indexed resolver paths should target:
+The Go preprocessing and indexed resolver paths target:
 
 - database: `opendep_preprocess`
 - table: `go_metadata`
@@ -119,7 +126,7 @@ The Go preprocessing and future indexed resolver paths should target:
 
 ## npm integration
 
-The npm preprocessing and future indexed resolver paths should target:
+The npm preprocessing and indexed resolver paths target:
 
 - database: `opendep_preprocess`
 - table: `npm_metadata`
@@ -131,8 +138,14 @@ The npm preprocessing and future indexed resolver paths should target:
 
 ## Notes
 
-- The shared DB stack now uses `yoyo-migrations`, a Python migration framework, instead of relying on PostgreSQL's one-time `/docker-entrypoint-initdb.d` behavior.
+- The shared DB stack uses `yoyo-migrations` instead of PostgreSQL's one-time
+  `/docker-entrypoint-initdb.d` behavior.
 - Yoyo tracks applied migrations in database tables such as `_yoyo_migration`, `_yoyo_log`, `_yoyo_version`, and `yoyo_lock`.
-- After a migration file has been applied, do not edit it in place. Create a new higher-ordered SQL migration file for later schema changes.
-- The current pip, Go, and npm tables are defined in separate ecosystem-specific files under `pre-process/common/database/initdb/`.
+- After a migration file has been applied, do not edit it in place. Create a
+  new higher-ordered SQL migration file for later schema changes.
+- The current pip, Go, and npm tables are defined in separate schema files
+  under `pre-process/common/database/initdb/`.
 - For npm, `npm_metadata` stores raw packuments, `npm_sync_state` stores `_changes` checkpoints, and `npm_tombstones` stores active package-level delete markers.
+- Maven and Cargo are intentionally absent from the migration list because
+  they currently use shared-cache and shared-index flows, not PostgreSQL-backed
+  metadata tables.
