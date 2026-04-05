@@ -1,8 +1,8 @@
 services:
   pip-preprocess:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: pip/Dockerfile
     image: opendep-pip-preprocess:latest
     working_dir: /workspace
     environment:

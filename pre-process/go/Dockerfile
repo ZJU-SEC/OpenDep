@@ -6,9 +6,10 @@ ENV PYTHONPATH=/workspace
 
 WORKDIR /workspace
 
-COPY requirements.txt /tmp/preprocess-go-requirements.txt
+COPY requirements /tmp/requirements
+COPY go/requirements.txt /tmp/go/requirements.txt
 
-RUN pip install --no-cache-dir -r /tmp/preprocess-go-requirements.txt
+RUN pip install --no-cache-dir -r /tmp/go/requirements.txt
 
 COPY go/docker-entrypoint.sh /usr/local/bin/preprocess-go
 

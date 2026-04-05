@@ -6,9 +6,10 @@ ENV PYTHONPATH=/workspace
 
 WORKDIR /workspace
 
-COPY requirements.txt /tmp/preprocess-npm-requirements.txt
+COPY requirements /tmp/requirements
+COPY npm/requirements.txt /tmp/npm/requirements.txt
 
-RUN pip install --no-cache-dir -r /tmp/preprocess-npm-requirements.txt
+RUN pip install --no-cache-dir -r /tmp/npm/requirements.txt
 
 COPY npm/docker-entrypoint.sh /usr/local/bin/preprocess-npm
 

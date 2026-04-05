@@ -5,11 +5,12 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /workspace/pre-process/common/database
 
-COPY requirements-migrations.txt /tmp/preprocess-db-migrations-requirements.txt
+COPY requirements /tmp/requirements
+COPY common/database/requirements-migrations.txt /tmp/common/database/requirements-migrations.txt
 
-RUN pip install --no-cache-dir -r /tmp/preprocess-db-migrations-requirements.txt
+RUN pip install --no-cache-dir -r /tmp/common/database/requirements-migrations.txt
 
-COPY docker-entrypoint-migrations.sh /usr/local/bin/preprocess-db-migrations
+COPY common/database/docker-entrypoint-migrations.sh /usr/local/bin/preprocess-db-migrations
 
 RUN chmod +x /usr/local/bin/preprocess-db-migrations
 

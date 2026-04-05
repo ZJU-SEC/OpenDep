@@ -1,2 +1,2 @@
-yoyo-migrations>=9,<10
-psycopg[binary]>=3.2,<4
+-r ../../requirements/db-client.txt
+yoyo-migrations==9.0.0

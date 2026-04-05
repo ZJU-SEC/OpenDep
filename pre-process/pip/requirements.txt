@@ -1,3 +1,2 @@
-packaging
-psycopg2-binary
-tomli
+-r ../requirements/db-client.txt
+packaging==26.1

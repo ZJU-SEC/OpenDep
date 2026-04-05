@@ -6,11 +6,12 @@ ENV PYTHONPATH=/workspace
 
 WORKDIR /workspace
 
-COPY requirements.txt /tmp/preprocess-pip-requirements.txt
+COPY requirements /tmp/requirements
+COPY pip/requirements.txt /tmp/pip/requirements.txt
 
-RUN pip install --no-cache-dir -r /tmp/preprocess-pip-requirements.txt
+RUN pip install --no-cache-dir -r /tmp/pip/requirements.txt
 
-COPY docker-entrypoint.sh /usr/local/bin/preprocess-pip
+COPY pip/docker-entrypoint.sh /usr/local/bin/preprocess-pip
 
 RUN chmod +x /usr/local/bin/preprocess-pip
 

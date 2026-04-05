@@ -25,8 +25,8 @@ services:
 
   preprocess-db-migrate:
     build:
-      context: .
-      dockerfile: Dockerfile.migrations
+      context: ../..
+      dockerfile: common/database/Dockerfile.migrations
     image: opendep-preprocess-db-migrations:latest
     working_dir: /workspace/pre-process/common/database
     depends_on:
