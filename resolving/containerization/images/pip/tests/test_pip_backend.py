@@ -339,7 +339,7 @@ class ContainerConfigTests(unittest.TestCase):
         self.assertIn("pip_cache", compose_text)
 
         registry = json.loads(
-            (PROJECT_ROOT / "resolving/config/resolvers.container.yaml").read_text(encoding="utf-8")
+            (PROJECT_ROOT / "resolving/config/resolvers.container.json").read_text(encoding="utf-8")
         )
         pip_entry = next(item for item in registry["resolvers"] if item["ecosystem"] == "pip")
         self.assertEqual(pip_entry["mode"], "process")

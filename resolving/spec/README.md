@@ -1,82 +1,45 @@
 # resolving Specification
 
-This directory contains the shared protocol artifacts for the OpenDep resolver
-stack. These files document the request/response model exchanged between
-`main.py`, the gateway, and the container adapters.
+`resolving/spec/` documents the shared request and response contract exchanged between `main.py`, the gateway, and the container adapters.
 
-## Scope
+## What It Covers
 
-The specification in this directory covers:
-
-- `resolving/spec/request.schema.json` — request schema reference
-- `resolving/spec/response.schema.json` — response schema reference
-- `resolving/spec/examples/request/` — sample request payloads
-- `resolving/spec/examples/response/` — sample response payloads
-
-The current example set now includes sample payloads for:
-
-- `resolve`
-- `list`
-- `health`
-- `capabilities`
-
-These schema and example files define the shared request/response envelope,
-not the full per-ecosystem capability matrix. Actual command, format, and
-feature support is advertised by the primary resolver registry in
-[`resolving/config/resolvers.container.yaml`](../config/resolvers.container.yaml).
-
-## Current Capability Alignment
-
-The primary registry for the current container stack advertises:
-
-| Ecosystem | Commands | Formats | Features |
-| --- | --- | --- | --- |
-| `pip` | `resolve`, `health`, `capabilities` | `graph` | `raw`, `markers`, `extras`, `cache`, `indexed`, `live` |
-| `npm` | `resolve`, `health`, `capabilities` | `graph` | `raw`, `peer-dependencies`, `directory-tree` |
-| `maven` | `resolve`, `health`, `capabilities` | `graph` | `raw`, `scopes`, `managed-dependencies` |
-| `cargo` | `resolve`, `health`, `capabilities` | `graph`, `full` | `raw`, `features`, `registry`, `cache` |
-| `go` | `resolve`, `list`, `health`, `capabilities` | `graph`, `full` | `raw`, `replace`, `exclude`, `buildlist` |
-
-The shared request schema allows `resolve`, `list`, `health`, and
-`capabilities` globally, but not every resolver implements every command.
-Callers should treat registry-backed `capabilities` output as the source of
-truth for a selected ecosystem.
+- [`resolving/spec/request.schema.json`](request.schema.json) — request schema reference
+- [`resolving/spec/response.schema.json`](response.schema.json) — response schema reference
+- [`resolving/spec/examples/request/`](examples/request/) — sample request payloads
+- [`resolving/spec/examples/response/`](examples/response/) — sample response payloads
 
 ## Error Codes
 
-The resolver specification uses a shared cross-ecosystem error taxonomy.
-Individual backends may have richer native error states, but adapters should map them into these codes whenever possible.
+Adapters should map backend-native failures into the shared taxonomy whenever possible.
 
-### Core taxonomy
+| Code | Meaning |
+| --- | --- |
+| `INVALID_ARGUMENT` | The request is malformed or missing required fields. |
+| `UNSUPPORTED_COMMAND` | The requested command is not supported by the selected resolver. |
+| `UNSUPPORTED_ECOSYSTEM` | No resolver is registered for the requested ecosystem. |
+| `UNSUPPORTED_OPTION` | A request option is invalid for the selected resolver. |
+| `PACKAGE_NOT_FOUND` | The package or module name could not be found. |
+| `VERSION_NOT_FOUND` | The package exists, but the requested version could not be found. |
+| `RESOLUTION_CONFLICT` | Dependency solving failed because the requested graph is incompatible. |
+| `DATA_SOURCE_UNAVAILABLE` | The backend could not reach or use its upstream metadata source. |
+| `BACKEND_MISCONFIGURED` | A required binary, jar, runtime, or config file is missing. |
+| `TIMEOUT` | The backend did not finish before the configured timeout. |
+| `BACKEND_CRASHED` | The backend process exited unexpectedly or with an unclassified failure. |
+| `PROTOCOL_ERROR` | The backend or adapter returned output that violates the expected contract. |
+| `INTERNAL_ERROR` | An unexpected contract or gateway-layer failure occurred. |
 
-| Code                      | Meaning                                                                     |
-| ------------------------- | --------------------------------------------------------------------------- |
-| `INVALID_ARGUMENT`        | The request is malformed or missing required fields.                        |
-| `UNSUPPORTED_COMMAND`     | The requested command is not supported by the selected resolver.            |
-| `UNSUPPORTED_ECOSYSTEM`   | No resolver is registered for the requested ecosystem.                      |
-| `UNSUPPORTED_OPTION`      | A request option is invalid for the selected resolver.                      |
-| `PACKAGE_NOT_FOUND`       | The package or module name could not be found.                              |
-| `VERSION_NOT_FOUND`       | The package exists, but the requested version could not be found.           |
-| `RESOLUTION_CONFLICT`     | Dependency solving failed because the requested graph is incompatible.      |
-| `DATA_SOURCE_UNAVAILABLE` | The backend could not reach or use its upstream metadata source.            |
-| `BACKEND_MISCONFIGURED`   | A required binary, jar, runtime, or config file is missing.                 |
-| `TIMEOUT`                 | The backend did not finish before the configured timeout.                   |
-| `BACKEND_CRASHED`         | The backend process exited unexpectedly or with an unclassified failure.    |
-| `PROTOCOL_ERROR`          | The backend or adapter returned output that violates the expected contract. |
-| `INTERNAL_ERROR`          | An unexpected contract or gateway-layer failure occurred.                   |
+When `return_raw` is enabled, adapters may preserve backend-native details in
+`raw` so callers can inspect stderr, exit codes, or native payloads without
+changing the shared default schema.
 
-### Adapter guidance
+## Result Shapes
 
-Adapters should preserve backend-native details in `raw` when `return_raw` is enabled.
-That lets callers inspect stderr, exit codes, or backend payloads without leaking ecosystem-specific structures into the shared contract by default.
-
-## Result Model
-
-The resolver specification uses a common response envelope, but the shape of `result` depends on the command.
+The response envelope stays consistent, but `result` changes by command.
 
 ### Shared response envelope
 
-Successful responses always include:
+Successful responses include:
 
 - `schema_version`
 - `request_id`
@@ -89,12 +52,9 @@ Successful responses always include:
 - `raw`
 - `timing`
 
-Many successful responses also include top-level `metrics` when the adapter can expose them directly.
+### `resolve`
 
-### `resolve` result
-
-`resolve` is graph-oriented.
-The normalized result usually includes:
+`resolve` returns graph-oriented data under `result`, typically including:
 
 - `root`
 - `nodes`
@@ -102,13 +62,14 @@ The normalized result usually includes:
 - `semantics`
 - `metrics`
 
-The requested `options.format` is ecosystem-specific.
-In the current stack:
+Current format support:
 
-- `graph` is supported across all five ecosystems
-- `full` is currently advertised by `cargo` and `go`
+- `graph` across all five ecosystems
+- `full` for `cargo` and `go`
 
-Example root object:
+Example root objects:
+
+Go graph results use `path`:
 
 ```json
 {
@@ -118,10 +79,20 @@ Example root object:
 }
 ```
 
-### `list` result
+pip graph results use `ecosystem` and `name`:
 
-`list` is currently implemented for Go. Its result is exposed under
-`result.list`.
+```json
+{
+  "id": "pip:requests@2.32.5",
+  "ecosystem": "pip",
+  "name": "requests",
+  "version": "2.32.5"
+}
+```
+
+### `list`
+
+`list` is currently implemented for Go and returns data under `result.list`.
 
 Example:
 
@@ -145,10 +116,9 @@ Example:
 }
 ```
 
-### `health` result
+### `health`
 
-`health` returns a command-specific object under `result.health`.
-The exact checks are resolver-specific.
+`health` returns a resolver-specific object under `result.health`.
 
 Example:
 
@@ -163,9 +133,9 @@ Example:
 }
 ```
 
-### `capabilities` result
+### `capabilities`
 
-`capabilities` returns a command-specific object under `result.capabilities`.
+`capabilities` returns a resolver-specific object under `result.capabilities`.
 
 Example:
 
@@ -180,36 +150,3 @@ Example:
   }
 }
 ```
-
-That object is the runtime-advertised capability summary for the selected
-resolver.
-For the current container registry, only Go includes `list`, and only Cargo and
-Go advertise the `full` format.
-Adapter responses may also include extra runtime detail that is not present in
-the static registry file, such as `metadata_modes` or more specific feature
-labels for indexed backends.
-
-### Raw preservation
-
-When `return_raw` is enabled, adapters may preserve backend-native output in `raw`, including:
-
-- `stdout`
-- `stderr`
-- `exit_code`
-- `backend_payload`
-
-### Metrics
-
-Adapters may copy useful counts to top-level `metrics` for convenience.
-For graph-style results, this commonly includes values such as `node_count` and `edge_count`.
-For Go `list`, this currently includes `entry_count`.
-
-## Notes
-
-- The current Python validation logic in `resolving/gateway/contract.py` is implemented directly in code.
-- These schema, examples, and markdown files remain the documentation source
-  for the intended request/response protocol.
-- The request schema includes `resolve`, `list`, `health`, and `capabilities`.
-- The shared request schema intentionally leaves `options` open-ended so
-  ecosystem-specific mode flags and indexed-store settings can pass through the
-  gateway without changing the top-level envelope shape.

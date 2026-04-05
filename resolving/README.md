@@ -1,20 +1,16 @@
 # resolving
 
-This directory contains the resolver subsystem of OpenDep.
-It sits behind the repository-root `main.py` entrypoint and covers the request
-path from gateway dispatch to ecosystem-specific backend execution.
+This directory contains the resolver subsystem of OpenDep. It sits behind the repository-root `main.py` entrypoint and covers the request path from gateway dispatch to ecosystem-specific backend execution.
 
 ## Purpose
 
-The `resolving/` tree is responsible for:
+The resolver subsystem is responsible for:
 
 - defining the shared request/response protocol
 - selecting the correct backend for a requested ecosystem and command
 - managing resolver registry files
 - executing container resolvers through the gateway
 - normalizing backend-native output into a common response model
-
-In the current structure, users interact with the repository-root `main.py`, while the code in `resolving/` provides the supporting implementation.
 
 ## High-level architecture
 
@@ -35,38 +31,23 @@ main.py
 
 ### `resolving/gateway/`
 
-The host-side orchestration layer.
-It validates incoming requests, selects the correct resolver from the registry, runs the configured launcher, and normalizes the backend response.
+The host-side orchestration layer. It validates incoming requests, selects the correct resolver from the registry, runs the configured launcher, and normalizes the backend response.
 
 ### `resolving/config/`
 
-Primary resolver registry definitions.
-These files declare which backend handles each ecosystem, how it is launched,
-and which capabilities are exposed before backend startup.
+Primary resolver registry definitions. These files declare which backend handles each ecosystem, how it is launched, and which capabilities are exposed before backend startup.
 
 ### `resolving/containerization/`
 
-The container resolver stack.
-This subtree contains Docker Compose wiring, runtime adapters, and ecosystem-specific image definitions for integrated resolvers.
+The container resolver stack. This subtree contains Docker Compose wiring, runtime adapters, and ecosystem-specific image definitions for integrated resolvers.
 
 ### `resolving/spec/`
 
-The shared request/response protocol.
-This directory documents the request schema, response schema, error taxonomy, result model, and sample request/response payloads.
+The shared request/response protocol. This directory documents the request schema, response schema, error taxonomy, result model, and sample request/response payloads.
 
 ## Current ecosystems
 
-The current container stack covers:
-
-- `pip`
-- `npm`
-- `maven`
-- `cargo`
-- `go`
-
-The current resolver matrix from the primary registry
-[`resolving/config/resolvers.container.yaml`](config/resolvers.container.yaml)
-is:
+The current resolver matrix from the primary registry [`resolving/config/resolvers.container.yaml`](config/resolvers.container.yaml) is:
 
 | Ecosystem | Commands | Formats | Current runtime contract |
 | --- | --- | --- | --- |
@@ -76,23 +57,6 @@ is:
 | `cargo` | `resolve`, `health`, `capabilities` | `graph`, `full` | preprocess-managed shared Cargo `local-registry` plus persistent Cargo home cache |
 | `go` | `resolve`, `list`, `health`, `capabilities` | `graph`, `full` | `online` or `indexed` metadata, with PostgreSQL-backed `go_metadata` in indexed mode |
 
-## Relationship to `main.py`
-
-The repository-root `main.py` is the intended user-facing CLI entrypoint.
-It imports the gateway from this directory and automatically selects the
-primary resolver registry for the requested ecosystem unless a custom registry
-path is provided.
-
-That means:
-
-- `resolving/` is not a separate end-user CLI directory
-- `resolving/gateway/` is an internal implementation layer
-- `resolving/config/` and `resolving/spec/` support the registry and protocol
-  model
-- `resolving/containerization/` contains the current backend integration strategy
-- mode flags for `pip`, `npm`, and `go` are surfaced through `main.py` and then
-  passed down into the container runtime adapters
-
 ## Recommended reading order
 
 If you are new to this subtree, a good reading order is:
@@ -101,12 +65,3 @@ If you are new to this subtree, a good reading order is:
 2. `resolving/config/README.md`
 3. `resolving/gateway/README.md`
 4. `resolving/containerization/README.md`
-
-## Notes
-
-- The current resolver stack is container-based for the active ecosystems.
-- Registry files currently use JSON syntax while keeping the historical `.yaml` suffix.
-- The gateway-level request and response validation logic currently lives in `resolving/gateway/contract.py`.
-- Adjacent runtime contracts are shared preprocess PostgreSQL for indexed
-  `pip`, `npm`, and `go`, shared `.m2` cache for `maven`, and shared
-  preprocess-managed `local-registry` for `cargo`.

@@ -125,23 +125,6 @@ services:
       MAVEN_MAIN_CLASS: cn.edu.zju.nirvana.maven.adapter.MavenResolverAdapterMain
     entrypoint: ["python3", "resolving/containerization/runtime/maven_adapter.py"]
 
-  preprocess-maven:
-    image: opendep-maven-preprocess:latest
-    build:
-      context: ../..
-      dockerfile: pre-process/maven/Dockerfile
-    working_dir: /workspace
-    volumes:
-      - ../..:/workspace
-      - maven_m2:/root/.m2
-    stdin_open: true
-    tty: false
-    init: true
-    environment:
-      PYTHONPATH: /workspace
-      PYTHONUNBUFFERED: "1"
-      MAVEN_PREPROCESS_REPOSITORY_ROOT: /root/.m2/repository
-
 volumes:
   cargo_home:
     name: resolver-cargo-home-cache

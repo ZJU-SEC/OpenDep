@@ -53,9 +53,24 @@ def build_capabilities() -> dict[str, Any]:
     }
 
 
+def _backend_module_health() -> tuple[bool, str]:
+    if not BACKEND_MODULE:
+        return False, "backend module is not configured"
+
+    try:
+        backend_module_spec = importlib.util.find_spec(BACKEND_MODULE)
+    except Exception as exc:
+        return False, f"backend module not importable: {BACKEND_MODULE} ({exc.__class__.__name__}: {exc})"
+
+    if backend_module_spec is None:
+        return False, f"backend module not importable: {BACKEND_MODULE}"
+
+    return True, BACKEND_MODULE
+
+
 def check_health() -> dict[str, Any]:
     python_binary = shutil.which("python3") or shutil.which("python")
-    backend_module_ready = bool(BACKEND_MODULE) and importlib.util.find_spec(BACKEND_MODULE) is not None
+    backend_module_ready, backend_module_details = _backend_module_health()
     checks = [
         {
             "name": "python_runtime",
@@ -65,7 +80,7 @@ def check_health() -> dict[str, Any]:
         {
             "name": "backend_module",
             "status": "ok" if backend_module_ready else "error",
-            "details": BACKEND_MODULE if backend_module_ready else f"backend module not importable: {BACKEND_MODULE}",
+            "details": backend_module_details,
         },
         {
             "name": "metadata_mode",

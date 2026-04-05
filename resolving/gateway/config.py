@@ -11,24 +11,10 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
 def container_config_path() -> Path:
-    return PROJECT_ROOT / "resolving" / "config" / "resolvers.container.yaml"
-
-
-def host_config_path() -> Path:
-    return PROJECT_ROOT / "resolving" / "config" / "resolvers.yaml"
+    return PROJECT_ROOT / "resolving" / "config" / "resolvers.container.json"
 
 
 def default_config_path(ecosystem: str | None = None) -> Path:
-    if ecosystem:
-        normalized = ecosystem.strip().lower()
-        container_path = container_config_path()
-        if _config_supports_ecosystem(container_path, normalized):
-            return container_path
-
-        legacy_path = host_config_path()
-        if _config_supports_ecosystem(legacy_path, normalized):
-            return legacy_path
-
     return container_config_path()
 
 
@@ -48,20 +34,6 @@ def normalize_config(data: dict[str, Any]) -> dict[str, Any]:
         item["workdir"] = str(_resolve_workdir(item.get("workdir", ".")))
         normalized["resolvers"].append(item)
     return normalized
-
-
-def _config_supports_ecosystem(path: Path, ecosystem: str) -> bool:
-    if not path.exists():
-        return False
-
-    with path.open("r", encoding="utf-8") as handle:
-        data = json.load(handle)
-
-    for resolver in data.get("resolvers", []):
-        candidate = str(resolver.get("ecosystem", "")).strip().lower()
-        if candidate == ecosystem:
-            return True
-    return False
 
 
 def _resolve_placeholder(value: Any) -> Any:
