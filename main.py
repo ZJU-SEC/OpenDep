@@ -33,7 +33,7 @@ EPILOG = """Examples:
 ECOSYSTEM_HELP = "Target ecosystem such as npm, maven, cargo, go, or pip."
 TIMEOUT_HELP = "Optional request timeout in milliseconds."
 RETURN_RAW_HELP = "Preserve backend-native stdout, stderr, and payload data in the response."
-PIP_MODE_HELP = "pip metadata mode. Supported values: live, indexed."
+PIP_MODE_HELP = "pip metadata mode. Supported values: online, indexed. `live` is accepted as a compatibility alias."
 PIP_INDEX_DSN_HELP = "PostgreSQL DSN used by the pip indexed metadata store."
 PIP_INDEX_TABLE_HELP = "PostgreSQL table name used by the pip indexed metadata store."
 PIP_INDEX_BACKEND_HELP = "Indexed metadata backend for pip. Defaults to postgres."
@@ -46,17 +46,29 @@ NPM_INDEX_DSN_HELP = "PostgreSQL DSN used by the npm indexed metadata store."
 NPM_INDEX_TABLE_HELP = "PostgreSQL table name used by the npm indexed metadata store."
 NPM_INDEX_FALLBACK_HELP = "Allow npm indexed mode to fall back to online metadata when indexed data is missing. Enabled by default."
 NPM_REGISTRY_BASE_URL_HELP = "Base URL used by npm online fetches and indexed fallback."
+CARGO_MODE_HELP = "cargo metadata mode. Supported values: indexed, online."
+
+
+def _parse_pip_mode(value: str) -> str:
+    normalized = value.strip().lower()
+    if normalized == "live":
+        return "online"
+    if normalized in {"online", "indexed"}:
+        return normalized
+    raise argparse.ArgumentTypeError("pip mode must be one of: online, indexed")
 
 
 def add_pip_runtime_args(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--pip-mode", choices=("live", "indexed"), help=PIP_MODE_HELP)
+    parser.add_argument("--pip-mode", type=_parse_pip_mode, metavar="{online,indexed}", help=PIP_MODE_HELP)
     parser.add_argument("--pip-index-dsn", help=PIP_INDEX_DSN_HELP)
     parser.add_argument("--pip-index-table", help=PIP_INDEX_TABLE_HELP)
     parser.add_argument("--pip-index-backend", help=PIP_INDEX_BACKEND_HELP)
     parser.add_argument(
+        "--pip-index-fallback-to-online",
         "--pip-index-fallback-to-live",
+        dest="pip_index_fallback_to_online",
         action="store_true",
-        help="Allow pip indexed mode to fall back to live metadata when indexed data is missing.",
+        help="Allow pip indexed mode to fall back to online metadata when indexed data is missing.",
     )
 
 
@@ -81,6 +93,10 @@ def add_npm_runtime_args(parser: argparse.ArgumentParser) -> None:
         action="store_true",
         help=NPM_INDEX_FALLBACK_HELP,
     )
+
+
+def add_cargo_runtime_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--cargo-mode", choices=("indexed", "online"), help=CARGO_MODE_HELP)
 
 
 def parse_args() -> argparse.Namespace:
@@ -117,6 +133,7 @@ def parse_args() -> argparse.Namespace:
     add_pip_runtime_args(resolve)
     add_go_runtime_args(resolve)
     add_npm_runtime_args(resolve)
+    add_cargo_runtime_args(resolve)
 
     list_cmd = subparsers.add_parser(
         "list",
@@ -131,6 +148,7 @@ def parse_args() -> argparse.Namespace:
     add_pip_runtime_args(list_cmd)
     add_go_runtime_args(list_cmd)
     add_npm_runtime_args(list_cmd)
+    add_cargo_runtime_args(list_cmd)
 
     health = subparsers.add_parser(
         "health",
@@ -142,6 +160,7 @@ def parse_args() -> argparse.Namespace:
     add_pip_runtime_args(health)
     add_go_runtime_args(health)
     add_npm_runtime_args(health)
+    add_cargo_runtime_args(health)
 
     capabilities = subparsers.add_parser(
         "capabilities",
@@ -153,6 +172,7 @@ def parse_args() -> argparse.Namespace:
     add_pip_runtime_args(capabilities)
     add_go_runtime_args(capabilities)
     add_npm_runtime_args(capabilities)
+    add_cargo_runtime_args(capabilities)
     return parser.parse_args()
 
 
@@ -190,7 +210,8 @@ def apply_runtime_overrides(args: argparse.Namespace) -> None:
             os.environ["PIP_INDEX_TABLE"] = args.pip_index_table
         if getattr(args, "pip_index_backend", None):
             os.environ["PIP_INDEX_BACKEND"] = args.pip_index_backend
-        if getattr(args, "pip_index_fallback_to_live", False):
+        if getattr(args, "pip_index_fallback_to_online", False):
+            os.environ["PIP_INDEX_FALLBACK_TO_ONLINE"] = "true"
             os.environ["PIP_INDEX_FALLBACK_TO_LIVE"] = "true"
         return
 
@@ -216,6 +237,11 @@ def apply_runtime_overrides(args: argparse.Namespace) -> None:
             os.environ["NPM_REGISTRY_BASE_URL"] = args.npm_registry_base_url
         if getattr(args, "npm_index_fallback_to_online", False):
             os.environ["NPM_INDEX_FALLBACK_TO_ONLINE"] = "true"
+        return
+
+    if ecosystem == "cargo":
+        if getattr(args, "cargo_mode", None):
+            os.environ["CARGO_METADATA_MODE"] = args.cargo_mode
 
 
 def main() -> int:

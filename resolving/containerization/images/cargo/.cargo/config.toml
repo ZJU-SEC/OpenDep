@@ -1,9 +1,0 @@
-[net]
-git-fetch-with-cli = true
-
-[source.mirror]
-# The resolver runtime consumes the preprocess-managed shared Docker volume.
-local-registry = "/cargo-preprocess-data/local-registry"
-
-[source.crates-io]
-replace-with = "mirror"

@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "request_id": "pip-live-example",
-  "trace_id": "pip-live-example-trace",
+  "request_id": "pip-online-example",
+  "trace_id": "pip-online-example-trace",
   "command": "resolve",
   "ecosystem": "pip",
   "package": {

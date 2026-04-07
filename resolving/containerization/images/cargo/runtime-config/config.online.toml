@@ -1,0 +1,9 @@
+[net]
+git-fetch-with-cli = true
+offline = false
+
+[registries.crates-io]
+protocol = "sparse"  # The protocol to use to access crates.io.
+
+[source.crates-io]
+registry = "https://github.com/rust-lang/crates.io-index/"

@@ -5,7 +5,14 @@ from dataclasses import dataclass
 from typing import Literal
 
 
-MetadataMode = Literal["live", "indexed"]
+MetadataMode = Literal["online", "indexed"]
+
+
+def normalize_metadata_mode(value: str | None) -> str:
+    normalized = (value or "online").strip().lower()
+    if normalized == "live":
+        return "online"
+    return normalized or "online"
 
 
 def _env_bool(name: str, default: bool = False) -> bool:
@@ -17,26 +24,29 @@ def _env_bool(name: str, default: bool = False) -> bool:
 
 @dataclass(frozen=True, slots=True)
 class BackendConfig:
-    metadata_mode: MetadataMode = "live"
+    metadata_mode: MetadataMode = "online"
     cache_dir: str | None = None
     index_backend: str | None = None
     index_dsn: str | None = None
     index_table: str = "pip_metadata"
-    index_fallback_to_live: bool = False
+    index_fallback_to_online: bool = False
     pypi_json_base_url: str = "https://pypi.org/pypi"
     http_user_agent: str = "OpenDep-Pip-resolving/0.1"
 
     @classmethod
     def from_env(cls) -> "BackendConfig":
-        raw_mode = os.getenv("PIP_METADATA_MODE", "live").strip().lower()
-        metadata_mode: MetadataMode = "indexed" if raw_mode == "indexed" else "live"
+        raw_mode = normalize_metadata_mode(os.getenv("PIP_METADATA_MODE", "online"))
+        metadata_mode: MetadataMode = "indexed" if raw_mode == "indexed" else "online"
         return cls(
             metadata_mode=metadata_mode,
             cache_dir=os.getenv("PIP_CACHE_DIR") or None,
             index_backend=os.getenv("PIP_INDEX_BACKEND") or None,
             index_dsn=os.getenv("PIP_INDEX_DSN") or None,
             index_table=os.getenv("PIP_INDEX_TABLE", "pip_metadata").strip() or "pip_metadata",
-            index_fallback_to_live=_env_bool("PIP_INDEX_FALLBACK_TO_LIVE", default=False),
+            index_fallback_to_online=_env_bool(
+                "PIP_INDEX_FALLBACK_TO_ONLINE",
+                default=_env_bool("PIP_INDEX_FALLBACK_TO_LIVE", default=False),
+            ),
             pypi_json_base_url=(os.getenv("PIP_PYPI_JSON_BASE_URL") or "https://pypi.org/pypi").rstrip("/"),
             http_user_agent=os.getenv("PIP_HTTP_USER_AGENT") or "OpenDep-Pip-resolving/0.1",
         )
@@ -48,7 +58,7 @@ class BackendConfig:
             "index_backend": self.index_backend,
             "index_dsn_configured": bool(self.index_dsn),
             "index_table": self.index_table,
-            "index_fallback_to_live": self.index_fallback_to_live,
+            "index_fallback_to_online": self.index_fallback_to_online,
             "pypi_json_base_url": self.pypi_json_base_url,
             "http_user_agent": self.http_user_agent,
         }

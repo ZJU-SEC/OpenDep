@@ -1,12 +1,8 @@
 # Shared Pre-process Database
 
-This directory contains the shared PostgreSQL setup used by preprocess jobs.
-It provides the database service, SQL migrations, and a Python migration
-runner.
+This directory contains the shared PostgreSQL setup used by preprocess jobs. It provides the database service, SQL migrations, and a Python migration runner.
 
-This README only covers PostgreSQL-backed preprocess paths.
-In the current stack, Maven and Cargo use shared filesystem contracts instead
-of shared preprocess tables.
+This README only covers PostgreSQL-backed preprocess paths. In the current stack, Maven and Cargo use shared filesystem contracts instead of shared preprocess tables.
 
 The intended deployment model is:
 
@@ -20,7 +16,7 @@ The intended deployment model is:
 - `pip` -> `pip_metadata`
 - `npm` -> `npm_metadata`, `npm_sync_state`, `npm_tombstones`
 - `maven` -> no shared PostgreSQL table in the current stack; uses shared `.m2` cache volume `resolver-maven-m2-cache`
-- `cargo` -> no shared PostgreSQL table in the current phase; uses managed `crates.io-index` plus prepared `local-registry`
+- `cargo` -> no shared PostgreSQL table in the current stack; uses a managed `crates.io-index` clone to prepare `local-registry` for indexed resolution
 - `go` -> `go_metadata`
 
 ## Files
@@ -135,17 +131,3 @@ The npm preprocessing and indexed resolver paths target:
 - checkpoint schema file: `pre-process/common/database/initdb/21-npm-sync-state.sql`
 - tombstone table: `npm_tombstones`
 - tombstone schema file: `pre-process/common/database/initdb/22-npm-tombstones.sql`
-
-## Notes
-
-- The shared DB stack uses `yoyo-migrations` instead of PostgreSQL's one-time
-  `/docker-entrypoint-initdb.d` behavior.
-- Yoyo tracks applied migrations in database tables such as `_yoyo_migration`, `_yoyo_log`, `_yoyo_version`, and `yoyo_lock`.
-- After a migration file has been applied, do not edit it in place. Create a
-  new higher-ordered SQL migration file for later schema changes.
-- The current pip, Go, and npm tables are defined in separate schema files
-  under `pre-process/common/database/initdb/`.
-- For npm, `npm_metadata` stores raw packuments, `npm_sync_state` stores `_changes` checkpoints, and `npm_tombstones` stores active package-level delete markers.
-- Maven and Cargo are intentionally absent from the migration list because
-  they currently use shared-cache and shared-index flows, not PostgreSQL-backed
-  metadata tables.

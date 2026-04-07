@@ -11,8 +11,8 @@ services:
       CARGO_INDEX_URL: ${CARGO_INDEX_URL:-https://github.com/rust-lang/crates.io-index.git}
     volumes:
       - ../..:/workspace
-      - cargo_preprocess_data:/cargo-preprocess-data
+      - cargo_data:/cargo-preprocess-data
 
 volumes:
-  cargo_preprocess_data:
-    name: ${CARGO_PREPROCESS_DATA_VOLUME_NAME:-opendep-cargo-preprocess-data}
+  cargo_data:
+    name: ${CARGO_DATA_VOLUME_NAME:-resolver-cargo-cache}

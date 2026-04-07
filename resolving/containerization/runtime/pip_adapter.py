@@ -35,7 +35,6 @@ BACKEND_MODULE = os.getenv(
     "PIP_BACKEND_MODULE",
     "resolving.containerization.images.pip.backend",
 )
-METADATA_MODE = os.getenv("PIP_METADATA_MODE", "live")
 METADATA = AdapterMetadata(
     name=ADAPTER_NAME,
     adapter_version=ADAPTER_VERSION,
@@ -44,11 +43,22 @@ METADATA = AdapterMetadata(
 )
 
 
+def _normalize_metadata_mode(value: str | None) -> str:
+    normalized = (value or "online").strip().lower()
+    if normalized == "live":
+        return "online"
+    return normalized or "online"
+
+
+METADATA_MODE = _normalize_metadata_mode(os.getenv("PIP_METADATA_MODE", "online"))
+
+
 def build_capabilities() -> dict[str, Any]:
     return {
         "commands": ["resolve", "health", "capabilities"],
         "formats": ["graph"],
-        "features": ["raw", "markers", "extras", "cache", "indexed", "live"],
+        "features": ["raw", "markers", "extras", "cache", "indexed", "online"],
+        "metadata_modes": ["online", "indexed"],
         "platform": False,
     }
 
@@ -84,7 +94,7 @@ def check_health() -> dict[str, Any]:
         },
         {
             "name": "metadata_mode",
-            "status": "ok" if METADATA_MODE in {"live", "indexed"} else "error",
+            "status": "ok" if METADATA_MODE in {"online", "indexed"} else "error",
             "details": METADATA_MODE,
         },
         {

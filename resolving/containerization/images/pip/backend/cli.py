@@ -15,7 +15,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 
 from resolving.containerization.images.pip.backend import BACKEND_NAME, BACKEND_VERSION
-from resolving.containerization.images.pip.backend.config import BackendConfig
+from resolving.containerization.images.pip.backend.config import BackendConfig, normalize_metadata_mode
 from resolving.containerization.images.pip.backend.errors import BackendError
 from resolving.containerization.images.pip.backend.graph import build_graph_result
 from resolving.containerization.images.pip.backend.indexer import IndexerService
@@ -27,6 +27,13 @@ try:
     from packaging.version import InvalidVersion, Version
 except ImportError:  # pragma: no cover - fallback for minimal pip environments
     from pip._vendor.packaging.version import InvalidVersion, Version
+
+
+def _parse_metadata_mode(value: str) -> str:
+    normalized = normalize_metadata_mode(value)
+    if normalized in {"online", "indexed"}:
+        return normalized
+    raise argparse.ArgumentTypeError("pip metadata mode must be `online` or `indexed`")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -44,8 +51,9 @@ def build_parser() -> argparse.ArgumentParser:
     resolve.add_argument("--version", help="Package version to resolve.")
     resolve.add_argument(
         "--mode",
-        choices=("live", "indexed"),
-        help="Optional metadata mode override for this invocation.",
+        type=_parse_metadata_mode,
+        metavar="{online,indexed}",
+        help="Optional metadata mode override for this invocation. `live` is accepted as a compatibility alias.",
     )
     resolve.add_argument(
         "--format",
@@ -283,7 +291,7 @@ def _index_payload(
     fail_fast: bool,
     limit: int | None,
 ) -> tuple[dict[str, Any], int]:
-    source = build_metadata_source(config, mode_override="live")
+    source = build_metadata_source(config, mode_override="online")
     try:
         store = build_index_store(config)
     except Exception:

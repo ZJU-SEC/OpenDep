@@ -11,9 +11,10 @@ RUN apt-get update && \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-ENV CARGO_HOME=/cargo-home
+ENV CARGO_SHARED_DATA_ROOT=/cargo-data
+ENV CARGO_HOME=/cargo-data/cargo-home
 ENV CARGO_RUNTIME_ROOT=/opt/opendep/cargo-runtime
-RUN mkdir -p /cargo-home "$CARGO_RUNTIME_ROOT/.cargo"
+RUN mkdir -p "$CARGO_HOME" "$CARGO_RUNTIME_ROOT/.cargo"
 
 COPY . .
 
@@ -23,17 +24,21 @@ RUN set -eu; \
         echo "cargo source directory not found at $source_dir" >&2; \
         exit 1; \
     fi; \
-    config_source="$source_dir/.cargo/config.toml"; \
-    if [ ! -f "$config_source" ]; then echo "cargo config not found: $config_source" >&2; exit 1; fi; \
-    build_config_backup="$config_source.runtime"; \
-    mv "$config_source" "$build_config_backup"; \
+    runtime_config_dir="$source_dir/runtime-config"; \
+    if [ ! -f "$runtime_config_dir/config.indexed.toml" ] || [ ! -f "$runtime_config_dir/config.online.toml" ]; then \
+        echo "cargo runtime config templates not found at $runtime_config_dir" >&2; \
+        exit 1; \
+    fi; \
+    entrypoint_source="$source_dir/resolver-entrypoint.sh"; \
+    if [ ! -f "$entrypoint_source" ]; then echo "cargo runtime entrypoint not found: $entrypoint_source" >&2; exit 1; fi; \
     mkdir -p "$CARGO_RUNTIME_ROOT/local-registry"; \
     cd "$source_dir"; \
     cargo build --release --bin cargo_resolver; \
-    cp "$build_config_backup" "$CARGO_RUNTIME_ROOT/.cargo/config.toml"; \
-    mv "$build_config_backup" "$config_source"; \
+    install -m 644 "$runtime_config_dir/config.indexed.toml" "$CARGO_RUNTIME_ROOT/.cargo/config.indexed.toml"; \
+    install -m 644 "$runtime_config_dir/config.online.toml" "$CARGO_RUNTIME_ROOT/.cargo/config.online.toml"; \
+    install -m 755 "$entrypoint_source" /usr/local/bin/cargo-resolver-runtime; \
     install -m 755 target/release/cargo_resolver /usr/local/bin/cargo-resolver
 
 WORKDIR /opt/opendep/cargo-runtime
 
-ENTRYPOINT ["/usr/local/bin/cargo-resolver"]
+ENTRYPOINT ["/usr/local/bin/cargo-resolver-runtime"]

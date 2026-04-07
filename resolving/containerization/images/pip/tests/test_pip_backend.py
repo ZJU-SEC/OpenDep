@@ -20,6 +20,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 
 from resolving.containerization.images.pip.backend import cli
+from resolving.containerization.images.pip.backend.config import BackendConfig
 from resolving.containerization.images.pip.backend.metadata_sources.base import MetadataSource
 from resolving.containerization.images.pip.backend.models import PackageMetadataRecord, VersionRecord
 from resolving.containerization.images.pip.backend.stores.base import IndexStore
@@ -119,9 +120,17 @@ class BackendResolveLiveTests(unittest.TestCase):
             self.assertEqual(payload["root"]["id"], "pip:rootpkg@1.0.0")
             self.assertEqual(payload["metrics"]["node_count"], 2)
             self.assertEqual(payload["metrics"]["edge_count"], 1)
-            self.assertEqual(payload["semantics"]["metadata_mode"], "live")
+            self.assertEqual(payload["semantics"]["metadata_mode"], "online")
             self.assertEqual(payload["edges"][0]["constraint"], "depone>=2")
             self.assertEqual(payload["edges"][0]["type"], "direct")
+
+
+class BackendConfigTests(unittest.TestCase):
+    def test_backend_config_normalizes_live_alias_to_online(self) -> None:
+        with patch.dict(os.environ, {"PIP_METADATA_MODE": "live"}, clear=False):
+            config = BackendConfig.from_env()
+
+        self.assertEqual(config.metadata_mode, "online")
 
 
 class IndexCliTests(unittest.TestCase):
@@ -345,7 +354,9 @@ class ContainerConfigTests(unittest.TestCase):
         self.assertEqual(pip_entry["mode"], "process")
         self.assertIn("cache", pip_entry["capabilities"]["features"])
         self.assertIn("indexed", pip_entry["capabilities"]["features"])
-        self.assertIn("live", pip_entry["capabilities"]["features"])
+        self.assertIn("online", pip_entry["capabilities"]["features"])
+        self.assertNotIn("live", pip_entry["capabilities"]["features"])
+        self.assertEqual(pip_entry["capabilities"]["metadata_modes"], ["online", "indexed"])
 
 
 class BackendDescribeTests(unittest.TestCase):

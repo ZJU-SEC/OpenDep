@@ -17,11 +17,12 @@ services:
       ADAPTER_VERSION: container-v1
       BACKEND_VERSION: python-backend-v1
       PIP_BACKEND_MODULE: resolving.containerization.images.pip.backend
-      PIP_METADATA_MODE: ${PIP_METADATA_MODE:-live}
+      PIP_METADATA_MODE: ${PIP_METADATA_MODE:-online}
       PIP_CACHE_DIR: /resolver-pip-cache
       PIP_INDEX_BACKEND: ${PIP_INDEX_BACKEND:-postgres}
       PIP_INDEX_DSN: ${PIP_INDEX_DSN:-}
       PIP_INDEX_TABLE: ${PIP_INDEX_TABLE:-pip_metadata}
+      PIP_INDEX_FALLBACK_TO_ONLINE: ${PIP_INDEX_FALLBACK_TO_ONLINE:-false}
       PIP_INDEX_FALLBACK_TO_LIVE: ${PIP_INDEX_FALLBACK_TO_LIVE:-false}
       PIP_PYPI_JSON_BASE_URL: ${PIP_PYPI_JSON_BASE_URL:-https://pypi.org/pypi}
       PIP_HTTP_USER_AGENT: ${PIP_HTTP_USER_AGENT:-OpenDep-Pip-resolving/0.1}
@@ -86,8 +87,7 @@ services:
       dockerfile: resolving/containerization/images/cargo/Dockerfile
     working_dir: /app
     volumes:
-      - cargo_home:/cargo-home
-      - cargo_preprocess_data:/cargo-preprocess-data:ro
+      - cargo_data:/cargo-data
     stdin_open: true
     tty: false
     init: true
@@ -96,11 +96,12 @@ services:
       RESOLVER_NAME: cargo-dependency-resolver
       ADAPTER_VERSION: container-v1
       BACKEND_VERSION: native-rust
-      CARGO_BACKEND_BINARY: /usr/local/bin/cargo-resolver
-      CARGO_HOME: /cargo-home
+      CARGO_BACKEND_BINARY: /usr/local/bin/cargo-resolver-runtime
+      CARGO_SHARED_DATA_ROOT: /cargo-data
+      CARGO_HOME: /cargo-data/cargo-home
       CARGO_RUNTIME_ROOT: /opt/opendep/cargo-runtime
-      CARGO_LOCAL_REGISTRY_DIR: /cargo-preprocess-data/local-registry
-      CARGO_REGISTRY_MODE: local-registry
+      CARGO_LOCAL_REGISTRY_DIR: /cargo-data/local-registry
+      CARGO_METADATA_MODE: ${CARGO_METADATA_MODE:-indexed}
     entrypoint: ["python3", "resolving/containerization/runtime/cargo_adapter.py"]
 
   resolver-maven:
@@ -126,11 +127,9 @@ services:
     entrypoint: ["python3", "resolving/containerization/runtime/maven_adapter.py"]
 
 volumes:
-  cargo_home:
-    name: resolver-cargo-home-cache
-  cargo_preprocess_data:
-    name: ${CARGO_PREPROCESS_DATA_VOLUME_NAME:-opendep-cargo-preprocess-data}
   maven_m2:
     name: resolver-maven-m2-cache
+  cargo_data:
+    name: ${CARGO_DATA_VOLUME_NAME:-resolver-cargo-cache}
   pip_cache:
     name: resolver-pip-cache

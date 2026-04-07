@@ -18,7 +18,8 @@
       "capabilities": {
         "commands": ["resolve", "health", "capabilities"],
         "formats": ["graph"],
-        "features": ["raw", "markers", "extras", "cache", "indexed", "live"]
+        "features": ["raw", "markers", "extras", "cache", "indexed", "online"],
+        "metadata_modes": ["online", "indexed"]
       }
     },
     {
@@ -81,7 +82,8 @@
       "capabilities": {
         "commands": ["resolve", "health", "capabilities"],
         "formats": ["graph", "full"],
-        "features": ["raw", "features", "registry", "cache"]
+        "features": ["raw", "features", "registry", "cache", "indexed-local-registry", "online-network"],
+        "metadata_modes": ["indexed", "online"]
       }
     },
     {
