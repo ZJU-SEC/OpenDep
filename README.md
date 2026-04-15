@@ -51,7 +51,7 @@ time. The resolver can also populate that cache lazily:
 docker compose -f pre-process/maven/docker-compose.yml build maven-preprocess
 docker compose -f pre-process/maven/docker-compose.yml run --rm \
   maven-preprocess warm \
-  org.apache.logging.log4j:log4j-core:2.23.1 \
+  --coordinate-file /workspace/pre-process/maven/examples/coordinate-list.txt \
   --pretty
 ```
 
@@ -88,7 +88,7 @@ Indexed preprocess:
 docker compose -f pre-process/pip/docker-compose.yml build pip-preprocess
 docker compose -f pre-process/pip/docker-compose.yml run --rm pip-preprocess \
   build \
-  --project requests==2.32.5 \
+  --project-file /workspace/pre-process/pip/examples/package-list.txt \
   --pretty
 ```
 
@@ -103,7 +103,7 @@ python3 main.py resolve --ecosystem pip --name requests --version 2.32.5 --forma
 Online resolve:
 
 ```bash
-python3 main.py resolve --ecosystem npm --name left-pad --version 1.3.0 --format graph --npm-mode online
+python3 main.py resolve --ecosystem npm --name mocha --version 10.0.0 --format graph --npm-mode online
 ```
 
 Indexed preprocess:
@@ -112,14 +112,14 @@ Indexed preprocess:
 docker compose -f pre-process/npm/docker-compose.yml build npm-preprocess
 docker compose -f pre-process/npm/docker-compose.yml run --rm npm-preprocess \
   build \
-  --package left-pad \
+  --package-file /workspace/pre-process/npm/examples/package-list.txt \
   --pretty
 ```
 
 Indexed resolve:
 
 ```bash
-python3 main.py resolve --ecosystem npm --name left-pad --version 1.3.0 --format graph --npm-mode indexed --npm-index-dsn "$INDEX_DSN" --npm-index-table npm_metadata
+python3 main.py resolve --ecosystem npm --name mocha --version 10.0.0 --format graph --npm-mode indexed --npm-index-dsn "$INDEX_DSN" --npm-index-table npm_metadata
 ```
 
 ### go
@@ -136,7 +136,7 @@ Indexed preprocess:
 docker compose -f pre-process/go/docker-compose.yml build go-preprocess
 docker compose -f pre-process/go/docker-compose.yml run --rm go-preprocess \
   build \
-  --module github.com/rogpeppe/godef@v1.1.2 \
+  --module-file /workspace/pre-process/go/examples/module-list.txt \
   --pretty
 ```
 
@@ -182,8 +182,7 @@ python3 main.py resolve --ecosystem cargo --name rand --version 0.8.5 --format f
 
 ### maven
 
-Maven does not expose an `online` / `indexed` switch. It always resolves
-through the shared `.m2` cache contract.
+Maven does not expose an `online` / `indexed` switch. It always resolves through the shared `.m2` cache contract.
 
 Cache warm-up:
 
@@ -191,7 +190,7 @@ Cache warm-up:
 docker compose -f pre-process/maven/docker-compose.yml build maven-preprocess
 docker compose -f pre-process/maven/docker-compose.yml run --rm \
   maven-preprocess warm \
-  org.apache.logging.log4j:log4j-core:2.23.1 \
+  --coordinate-file /workspace/pre-process/maven/examples/coordinate-list.txt \
   --pretty
 ```
 

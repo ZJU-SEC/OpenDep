@@ -37,7 +37,24 @@ cache:
 docker compose -f pre-process/maven/docker-compose.yml build maven-preprocess
 ```
 
-### 2. Run Package-List Indexing
+### 2. Run Indexing
+
+For the repository's Maven resolve example, use the curated exact coordinate closure in [`coordinate-list.txt`](examples/coordinate-list.txt).
+
+Recommended command:
+
+```bash
+docker compose -f pre-process/maven/docker-compose.yml run --rm \
+  maven-preprocess warm \
+  --coordinate-file /workspace/pre-process/maven/examples/coordinate-list.txt \
+  --pretty
+```
+
+Notes:
+
+- `--coordinate-file` reads one Maven coordinate per line in `groupId:artifactId:version` form
+- unlike `warm org.apache.logging.log4j:log4j-core:2.23.1`, the curated example file already includes the transitive dependency closure needed for the example resolve
+- this is the fastest path if your goal is to prepare the shared `.m2` so the example resolve can run immediately afterward
 
 For Maven package-list indexing, use one package name per line in `groupId:artifactId` form. Example file: [`package-list.txt`](examples/package-list.txt)
 
@@ -95,8 +112,6 @@ Run the user-facing resolver path:
 ```bash
 python3 main.py resolve --ecosystem maven --name org.apache.logging.log4j:log4j-core --version 2.23.1 --format graph
 ```
-
-
 
 ### 4. `sync-mode`
 

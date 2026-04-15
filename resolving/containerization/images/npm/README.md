@@ -19,8 +19,8 @@ docker compose -f resolving/containerization/docker-compose.yml build resolver-n
 python3 main.py health --ecosystem npm
 python3 main.py capabilities --ecosystem npm
 
-python3 main.py resolve --ecosystem npm --name left-pad --version 1.3.0 --format graph --npm-mode online
-python3 main.py resolve --ecosystem npm --name left-pad --version 1.3.0 --format graph --npm-mode indexed --npm-index-dsn 'postgresql://opendep:opendep@host.docker.internal:55432/opendep_preprocess' --npm-index-table npm_metadata
+python3 main.py resolve --ecosystem npm --name mocha --version 10.0.0 --format graph --npm-mode online
+python3 main.py resolve --ecosystem npm --name mocha --version 10.0.0 --format graph --npm-mode indexed --npm-index-dsn 'postgresql://opendep:opendep@host.docker.internal:55432/opendep_preprocess' --npm-index-table npm_metadata
 ```
 
 If you want indexed mode, populate `npm_metadata` first through [`pre-process/npm/README.md`](../../../../pre-process/npm/README.md).

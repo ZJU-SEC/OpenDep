@@ -1,4 +1,3 @@
-# One Maven package name (`groupId:artifactId`) per line.
-adarwin:adarwin
+# Root Maven package used by the repository example warm-up flow.
+# For an exact dependency closure, use `coordinate-list.txt`.
 org.apache.logging.log4j:log4j-core
-junit:junit

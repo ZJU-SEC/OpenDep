@@ -68,7 +68,7 @@ python3 main.py health --ecosystem npm
 Then run a resolve:
 
 ```bash
-python3 main.py resolve --ecosystem npm --name left-pad --version 1.3.0 --format graph --npm-mode indexed --npm-index-dsn 'postgresql://opendep:opendep@host.docker.internal:55432/opendep_preprocess' --npm-index-table npm_metadata
+python3 main.py resolve --ecosystem npm --name mocha --version 10.0.0 --format graph --npm-mode indexed --npm-index-dsn 'postgresql://opendep:opendep@host.docker.internal:55432/opendep_preprocess' --npm-index-table npm_metadata
 ```
 
 ## Other Docker Commands
