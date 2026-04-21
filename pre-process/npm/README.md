@@ -130,7 +130,7 @@ docker compose -f pre-process/npm/docker-compose.yml run --rm npm-preprocess \
   sync-once \
   --source-key npmjs-primary \
   --changes-url https://replicate.npmjs.com/registry/_changes \
-  --registry-base-url https://replicate.npmjs.com/registry \
+  --registry-base-url https://registry.npmjs.org \
   --since 0 \
   --limit 500 \
   --pretty

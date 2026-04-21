@@ -28,7 +28,7 @@ from adapters.changes_client import (
     NpmChangeEvent,
     NpmChangesClient,
 )
-from adapters.registry_client import NpmRegistryClient
+from adapters.registry_client import NpmRegistryClient, NpmRegistryClientError
 from loaders.postgres_loader import (
     DEFAULT_SCHEMA_FILE,
     DEFAULT_SYNC_STATE_SCHEMA_FILE,
@@ -192,6 +192,29 @@ def _record_from_event(registry_client: NpmRegistryClient, event: NpmChangeEvent
     )
 
 
+def _append_missing_packument_tombstone(
+    *,
+    tombstone_triplets: list[tuple[int, dict[str, object], NpmTombstoneRecord]],
+    item: dict[str, object],
+    index: int,
+    event: NpmChangeEvent,
+) -> None:
+    item["status"] = "delete_pending"
+    item["reason"] = "packument_not_found"
+    tombstone_triplets.append(
+        (
+            index,
+            item,
+            NpmTombstoneRecord(
+                name=event.package_name,
+                source_rev=event.changes_rev,
+                deleted_seq=event.sequence,
+                deleted_at=datetime.now(timezone.utc),
+            ),
+        )
+    )
+
+
 def _build_preflight_error_payload(
     *,
     source_key: str,
@@ -345,6 +368,20 @@ def _process_batch_events(
         for index, item, event, existing_source_rev in pending_fetches:
             try:
                 record = _record_from_event(registry_client, event)
+            except NpmRegistryClientError as exc:
+                if exc.status_code == 404:
+                    _append_missing_packument_tombstone(
+                        tombstone_triplets=tombstone_triplets,
+                        item=item,
+                        index=index,
+                        event=event,
+                    )
+                    delete_count += 1
+                    continue
+                item["status"] = "error"
+                item["error"] = str(exc)
+                error_count += 1
+                continue
             except Exception as exc:
                 item["status"] = "error"
                 item["error"] = str(exc)
@@ -354,13 +391,27 @@ def _process_batch_events(
     else:
         with ThreadPoolExecutor(max_workers=concurrency) as executor:
             future_to_context = {
-                executor.submit(_record_from_event, registry_client, event): (index, item, existing_source_rev)
+                executor.submit(_record_from_event, registry_client, event): (index, item, event, existing_source_rev)
                 for index, item, event, existing_source_rev in pending_fetches
             }
             for future in as_completed(future_to_context):
-                index, item, existing_source_rev = future_to_context[future]
+                index, item, event, existing_source_rev = future_to_context[future]
                 try:
                     record = future.result()
+                except NpmRegistryClientError as exc:
+                    if exc.status_code == 404:
+                        _append_missing_packument_tombstone(
+                            tombstone_triplets=tombstone_triplets,
+                            item=item,
+                            index=index,
+                            event=event,
+                        )
+                        delete_count += 1
+                        continue
+                    item["status"] = "error"
+                    item["error"] = str(exc)
+                    error_count += 1
+                    continue
                 except Exception as exc:
                     item["status"] = "error"
                     item["error"] = str(exc)

@@ -14,7 +14,7 @@ except ImportError:  # pragma: no cover
 
 
 DEFAULT_CHANGES_URL = "https://replicate.npmjs.com/registry/_changes"
-DEFAULT_SYNC_REGISTRY_BASE_URL = "https://replicate.npmjs.com/registry"
+DEFAULT_SYNC_REGISTRY_BASE_URL = "https://registry.npmjs.org"
 
 
 class NpmChangesClientError(RuntimeError):

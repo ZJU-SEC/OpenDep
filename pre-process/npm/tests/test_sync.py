@@ -10,6 +10,7 @@ from unittest.mock import patch
 from support import PROJECT_ROOT
 
 from adapters.changes_client import NpmChangeEvent, NpmChangesBatch
+from adapters.registry_client import NpmRegistryClientError
 from pipeline.records import NpmSyncCheckpointRecord
 
 import sync as npm_sync
@@ -140,7 +141,7 @@ class SyncCommandTests(unittest.TestCase):
     def test_sync_once_uses_checkpoint_deduplicates_events_and_advances_checkpoint(self) -> None:
         FakeSyncStateLoader.checkpoint = NpmSyncCheckpointRecord(
             source_key="npmjs-primary",
-            registry_base_url="https://replicate.npmjs.com/registry",
+            registry_base_url="https://registry.npmjs.org",
             changes_url="https://replicate.npmjs.com/registry/_changes",
             last_seq="41-g1AAAA",
             checkpointed_at=datetime(2026, 4, 15, 10, 0, tzinfo=timezone.utc),
@@ -163,7 +164,7 @@ class SyncCommandTests(unittest.TestCase):
                 {
                     "name": "left-pad",
                     "raw_packument": '{"_id":"left-pad","versions":{"1.3.0":{}}}',
-                    "source_url": "https://replicate.npmjs.com/registry/left-pad",
+                    "source_url": "https://registry.npmjs.org/left-pad",
                     "source_rev": None,
                     "fetched_at": datetime(2026, 4, 15, 12, 0, tzinfo=timezone.utc),
                 },
@@ -248,6 +249,51 @@ class SyncCommandTests(unittest.TestCase):
         self.assertEqual(changes_client.fetch_calls, [("100-g1", 1000)])
         self.assertEqual(len(metadata_loader.applied_batches), 0)
         self.assertIn("checkpoint was not advanced", payload["warnings"][0])
+
+    def test_sync_once_treats_packument_404_as_delete_and_advances_checkpoint(self) -> None:
+        FakeChangesClient.batch = NpmChangesBatch(
+            events=[
+                NpmChangeEvent(package_name="vs-deploy", sequence="101-g1", changes_rev="1-missing"),
+            ],
+            last_seq="101-g1",
+            source_url="https://replicate.npmjs.com/registry/_changes?limit=1000",
+        )
+        FakeRegistryClient.downloads = {
+            "vs-deploy": NpmRegistryClientError(
+                "npm registry returned status 404 for vs-deploy",
+                url="https://replicate.npmjs.com/registry/vs-deploy",
+                status_code=404,
+            ),
+        }
+        stdout = io.StringIO()
+
+        with patch.object(npm_sync, "NpmPackumentPostgresLoader", FakeMetadataLoader), patch.object(
+            npm_sync, "NpmSyncStatePostgresLoader", FakeSyncStateLoader
+        ), patch.object(
+            npm_sync, "NpmTombstonePostgresLoader", FakeTombstoneLoader
+        ), patch.object(npm_sync, "NpmChangesClient", FakeChangesClient), patch.object(
+            npm_sync, "NpmRegistryClient", FakeRegistryClient
+        ), redirect_stdout(stdout):
+            exit_code = npm_sync.main(["sync-once", "--source-key", "npmjs-primary"])
+
+        payload = json.loads(stdout.getvalue())
+        metadata_loader = FakeMetadataLoader.instances[0]
+        records, tombstones, checkpoint, _, tombstone_loader = metadata_loader.applied_batches[0]
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(payload["status"], "ok")
+        self.assertEqual(payload["summary"]["updated_row_count"], 0)
+        self.assertEqual(payload["summary"]["delete_event_count"], 1)
+        self.assertEqual(payload["summary"]["error_count"], 0)
+        self.assertTrue(payload["summary"]["checkpoint_advanced"])
+        self.assertEqual(payload["results"][0]["status"], "deleted")
+        self.assertEqual(payload["results"][0]["reason"], "packument_not_found")
+        self.assertEqual(records, [])
+        self.assertEqual(len(tombstones), 1)
+        self.assertEqual(tombstones[0].name, "vs-deploy")
+        self.assertEqual(tombstones[0].source_rev, "1-missing")
+        self.assertEqual(checkpoint.last_seq, "101-g1")
+        self.assertIsNotNone(tombstone_loader)
 
     def test_sync_follow_accumulates_metrics_and_stops_gracefully(self) -> None:
         outcomes = [
