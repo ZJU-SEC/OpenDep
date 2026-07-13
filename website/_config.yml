@@ -1,0 +1,20 @@
+title: OpenDep
+description: A policy-aware dependency resolution framework for ecosystem-scale software dependency analysis.
+# For a GitHub Pages project site at https://USER.github.io/OpenDep/.
+# If the repository name differs, change this to "/REPOSITORY_NAME".
+# If using a custom domain or a user/organization site, set this to "".
+baseurl: "/OpenDep"
+url: ""
+
+repository_url: "https://github.com/ZJU-SEC/OpenDep"
+doi_url: "https://doi.org/10.5281/zenodo.14214124"
+
+markdown: kramdown
+highlighter: rouge
+
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+
+exclude:
+  - README.md

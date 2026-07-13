@@ -1,0 +1,13 @@
+- title: Overview
+  url: /
+- title: Quick Start
+  url: /quick-start/
+- title: Usage
+  url: /usage/
+- title: Preprocessing
+  url: /preprocessing-indexed-mode/
+- title: Architecture
+  url: /architecture/
+- title: Artifact Details
+  url: /artifact-details/
+

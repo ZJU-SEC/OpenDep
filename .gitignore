@@ -10,3 +10,8 @@ resolving/containerization/images/cargo/target/
 resolving/containerization/images/cargo/job_once/
 
 dep_*
+
+website/.local-preview/
+website/_site/
+website/local-preview.out.log
+website/local-preview.err.log
