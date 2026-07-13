@@ -99,6 +99,6 @@ Please cite the paper if you use OpenDep or the released dataset:
 
 ## Links
 
-- Code repository: [TODO_CODE_REPOSITORY_URL]({{ site.repository_url }})
+- Code repository: [https://github.com/ZJU-SEC/OpenDep]({{ site.repository_url }})
 - DOI: [https://doi.org/10.5281/zenodo.14214124]({{ site.doi_url }})
 - License: Apache License 2.0
