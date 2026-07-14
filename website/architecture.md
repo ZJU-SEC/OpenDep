@@ -99,7 +99,7 @@ To extend OpenDep, developers usually inspect or modify:
 
 The new backend should return data that can be normalized into the shared OpenDep response envelope.
 
-## Suggested Figure
+## Architecture Figure
 
 <figure class="figure">
   <img src="{{ '/assets/img/architecture.png' | relative_url }}" alt="OpenDep dependency resolution workflow">
